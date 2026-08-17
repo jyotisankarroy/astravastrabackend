@@ -1,9 +1,11 @@
 package com.astravastra.authentication_service.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.astravastra.authentication_service.dto.EmailRequest;
+import com.astravastra.authentication_service.dto.RegisterRequest;
 import com.astravastra.authentication_service.dto.Response;
 import com.astravastra.authentication_service.dto.TokenResponse;
 import com.astravastra.authentication_service.dto.VerifyOtpRequest;
@@ -57,6 +59,18 @@ public class AuthController {
 			response.setStatus(false);
 		}
 		return ResponseEntity.ok(response);
+	}
+	
+	@PostMapping("/register")
+	public ResponseEntity<TokenResponse> register(@RequestHeader("Authorization") String authHeader,
+			@RequestBody RegisterRequest request) {
+
+		// Extract token by removing "Bearer " prefix
+		String registrationToken = authHeader.substring(7);
+
+		TokenResponse response = authService.registerUser(request, registrationToken);
+		
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 }
