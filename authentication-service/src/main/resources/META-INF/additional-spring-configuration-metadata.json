@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "spring.security.jwt.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.security.jwt.secret-key'"
+  },
+  {
+    "name": "spring.security.jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.security.jwt.expiration'"
+  },
+  {
+    "name": "spring.security.jwt.refresh-token.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.security.jwt.refresh-token.expiration'"
+  }
+]}
