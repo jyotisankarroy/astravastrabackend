@@ -127,7 +127,7 @@ public class AuthService {
         // Check if user already exists
         Users byEmail = userRepository.findUserByEmail(request.getEmail());
         
-        if (byEmail == null) {
+        if (byEmail != null) {
             throw new RuntimeException("Email already in use");
         }
 
