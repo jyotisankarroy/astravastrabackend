@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astravastra.authentication_service.dto.RegisterRequest;
-import com.astravastra.authentication_service.dto.TokenRefreshResponse;
 import com.astravastra.authentication_service.dto.TokenResponse;
 import com.astravastra.authentication_service.entity.Otp;
 import com.astravastra.authentication_service.entity.RefreshToken;
@@ -124,7 +123,7 @@ public class AuthService {
 	}
 	
 	@Transactional
-	public TokenRefreshResponse refreshAccessToken(String requestRefreshToken) {
+	public TokenResponse refreshAccessToken(String requestRefreshToken) {
 	    String userEmail;
 	    
 	    // Verify the JWT signature and expiration
@@ -161,16 +160,29 @@ public class AuthService {
 	    // Generate new tokens
 	    String newAccessToken = jwtService.generateAccessToken(user);
 	    String newRefreshToken = jwtService.generateRefreshToken(user);
-
-	    // Save the new refresh token to the DB
-	    RefreshToken newDbToken = new RefreshToken();
-	    newDbToken.setUser(user);
-	    newDbToken.setToken(newRefreshToken);
-	    newDbToken.setExpiryDate(jwtService.extractClaim(newRefreshToken, Claims::getExpiration));
 	    
-	    refreshTokenRepository.save(newDbToken);
-
-	    return new TokenRefreshResponse(newAccessToken, newRefreshToken);
+	    TokenResponse response = new TokenResponse();
+	    
+	    if (newAccessToken != null && !newAccessToken.isBlank()
+	            && newRefreshToken != null && !newRefreshToken.isBlank()) {
+	    	// Save the new refresh token to the DB
+		    RefreshToken newDbToken = new RefreshToken();
+		    newDbToken.setUser(user);
+		    newDbToken.setToken(newRefreshToken);
+		    newDbToken.setExpiryDate(jwtService.extractClaim(newRefreshToken, Claims::getExpiration));
+		    
+		    refreshTokenRepository.save(newDbToken);
+		    
+		    response.setMessage("Token refreshed successfully");
+		    response.setToken(newRefreshToken);
+		    response.setRefreshToken(newRefreshToken);
+		    response.setStatus(true);
+	    } else {
+		    response.setMessage("Failed to generate access and refresh tokens");
+		    response.setStatus(false);
+	    }
+	    
+	    return new TokenResponse();
 	}
 
     @Transactional
