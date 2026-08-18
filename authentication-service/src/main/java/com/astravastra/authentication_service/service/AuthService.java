@@ -4,29 +4,37 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astravastra.authentication_service.dto.RegisterRequest;
+import com.astravastra.authentication_service.dto.TokenRefreshResponse;
 import com.astravastra.authentication_service.dto.TokenResponse;
-import com.astravastra.authentication_service.dto.UserResponse;
 import com.astravastra.authentication_service.entity.Otp;
+import com.astravastra.authentication_service.entity.RefreshToken;
 import com.astravastra.authentication_service.entity.Users;
 import com.astravastra.authentication_service.repository.OtpRepository;
+import com.astravastra.authentication_service.repository.RefreshTokenRepository;
 import com.astravastra.authentication_service.repository.UserRepository;
 import com.astravastra.authentication_service.security.JwtService;
 
+import io.jsonwebtoken.Claims;
+
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class AuthService {
 
     private final OtpRepository otpRepository;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final EmailService emailService;
     private final JwtService jwtService;
     
     public AuthService(OtpRepository otpRepository, UserRepository userRepository, EmailService emailService,
-			JwtService jwtService) {
+			JwtService jwtService, RefreshTokenRepository refreshTokenRepository) {
 		this.otpRepository = otpRepository;
 		this.userRepository = userRepository;
+		this.refreshTokenRepository = refreshTokenRepository;
 		this.emailService = emailService;
 		this.jwtService = jwtService;
 	}
@@ -89,17 +97,15 @@ public class AuthService {
 	    	// Generate token
 	    	String accessToken = jwtService.generateAccessToken(user);
 	        String refreshToken = jwtService.generateRefreshToken(user);
+	        
+	        // Save the initial Refresh Token
+	        RefreshToken dbRefreshToken = new RefreshToken();
+	        dbRefreshToken.setUser(user);
+	        dbRefreshToken.setToken(refreshToken);
+	        dbRefreshToken.setExpiryDate(jwtService.extractClaim(refreshToken, Claims::getExpiration));
+	        
+	        refreshTokenRepository.save(dbRefreshToken);
 		    
-	    	UserResponse userResponse = new UserResponse();
-	    	userResponse.setFirstName(user.getFirst_name());
-	    	userResponse.setLastName(user.getLast_name());
-	    	userResponse.setEmail(user.getEmail());
-	    	userResponse.setGender(user.getGender());
-	    	userResponse.setId(user.getId());
-	    	userResponse.setMobile(user.getPhone());
-	    	userResponse.setUuid(null);
-	    	
-	    	response.setUser(userResponse);
 	        response.setMessage("User already exists");
 	        response.setStatus(true);
 		    response.setExistingUser(true);
@@ -115,6 +121,56 @@ public class AuthService {
 	    }
 
 	    return response;
+	}
+	
+	@Transactional
+	public TokenRefreshResponse refreshAccessToken(String requestRefreshToken) {
+	    String userEmail;
+	    
+	    // Verify the JWT signature and expiration
+	    try {
+	        userEmail = jwtService.extractUsername(requestRefreshToken);
+	    } catch (Exception e) {
+	        throw new RuntimeException("Refresh token is invalid or expired. Please log in again.");
+	    }
+
+	    Users user = userRepository.findUserByEmail(userEmail);
+	    
+	    if (user == null) {
+			throw new RuntimeException("User not found");
+		}
+	    
+	    // Check the Database
+	    Optional<RefreshToken> dbTokenOpt = refreshTokenRepository.findByToken(requestRefreshToken);
+
+	    // This means it was already used and rotated. We have a breach.
+	    if (dbTokenOpt.isEmpty()) {
+	        // Revoke ALL refresh tokens for this user.
+	        refreshTokenRepository.deleteByUser(user);
+	        
+	        System.err.println("SECURITY ALERT: Token reuse detected for user " + userEmail + ". All sessions revoked.");
+	        throw new RuntimeException("Security alert: Suspicious activity detected. Please log in again.");
+	    }
+
+	    // The token is valid and in the DB.
+	    RefreshToken dbToken = dbTokenOpt.get();
+
+	    // Delete the old token (Rotate)
+	    refreshTokenRepository.delete(dbToken);
+
+	    // Generate new tokens
+	    String newAccessToken = jwtService.generateAccessToken(user);
+	    String newRefreshToken = jwtService.generateRefreshToken(user);
+
+	    // Save the new refresh token to the DB
+	    RefreshToken newDbToken = new RefreshToken();
+	    newDbToken.setUser(user);
+	    newDbToken.setToken(newRefreshToken);
+	    newDbToken.setExpiryDate(jwtService.extractClaim(newRefreshToken, Claims::getExpiration));
+	    
+	    refreshTokenRepository.save(newDbToken);
+
+	    return new TokenRefreshResponse(newAccessToken, newRefreshToken);
 	}
 
     @Transactional
@@ -133,12 +189,12 @@ public class AuthService {
 
         // Create and save new user
         Users user = new Users();
+        user.setUuid(UUID.randomUUID().toString());
         user.setEmail(request.getEmail());
         user.setFirst_name(request.getFirstName());
         user.setLast_name(request.getLastName());
         user.setGender(request.getGender());
         user.setIs_active(true);
-        user.setLocation(null);
         user.setPhone(request.getMobile());
         user.setStatus(0);
         user.setCreated_at(LocalDateTime.now());
@@ -149,19 +205,17 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         
+        // Save the initial Refresh Token
+        RefreshToken dbRefreshToken = new RefreshToken();
+        dbRefreshToken.setUser(user);
+        dbRefreshToken.setToken(refreshToken);
+        dbRefreshToken.setExpiryDate(jwtService.extractClaim(refreshToken, Claims::getExpiration));
+        
+        refreshTokenRepository.save(dbRefreshToken);
+        
         TokenResponse response = new TokenResponse();
         
-        UserResponse userResponse = new UserResponse();
-    	userResponse.setFirstName(user.getFirst_name());
-    	userResponse.setLastName(user.getLast_name());
-    	userResponse.setEmail(user.getEmail());
-    	userResponse.setGender(user.getGender());
-    	userResponse.setId(user.getId());
-    	userResponse.setMobile(user.getPhone());
-    	userResponse.setUuid(null);
-    	
-    	response.setUser(userResponse);
-        response.setMessage("User registration successful");
+        response.setMessage("User registered successfully");
         response.setStatus(true);
 	    response.setExistingUser(false);
 	    response.setToken(accessToken);

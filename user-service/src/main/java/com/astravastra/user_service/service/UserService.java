@@ -1,5 +1,6 @@
 package com.astravastra.user_service.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,10 +36,10 @@ public class UserService {
 		if (user != null) {
 	    	response.setData(user);
 	        response.setMessage("User details fetched successfully");
-	        response.setSuccess(true);
+	        response.setStatus(true);
 	    } else {
 	        response.setMessage("User not found");
-	        response.setSuccess(false);
+	        response.setStatus(false);
 	    }
 
 	    return response;
@@ -94,6 +95,28 @@ public class UserService {
 
 		return new ResponseDto(true,
 				request.getAddressId() != null ? "Address updated successfully" : "Address added successfully", null);
+	}
+	
+	public ResponseDto updateProfile(RegisterRequest request, String userEmail) {
+		
+		Users existingUser = userRepository.findUserByEmail(userEmail);
+
+		if (existingUser == null) {
+			return new ResponseDto(false, "User not found", null);
+		}
+		
+		existingUser.setFirst_name(request.getFirstName());
+		existingUser.setLast_name(request.getLastName());
+		existingUser.setGender(request.getGender());
+		existingUser.setDob(request.getDob());
+		existingUser.setMiddle_name(request.getMiddleName());
+		existingUser.setLocation(request.getLocation());
+		existingUser.setPin_code(request.getPinCode());
+		existingUser.setModified_at(LocalDateTime.now());
+		
+		userRepository.save(existingUser);
+		
+		return new ResponseDto(true, "Profile updated successfully", null);
 	}
 	
 	public ResponseDto getAddresses(String email) {

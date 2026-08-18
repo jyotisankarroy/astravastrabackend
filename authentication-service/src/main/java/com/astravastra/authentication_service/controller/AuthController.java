@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.astravastra.authentication_service.dto.EmailRequest;
 import com.astravastra.authentication_service.dto.RegisterRequest;
 import com.astravastra.authentication_service.dto.Response;
+import com.astravastra.authentication_service.dto.TokenRefreshResponse;
 import com.astravastra.authentication_service.dto.TokenResponse;
 import com.astravastra.authentication_service.dto.VerifyOtpRequest;
 import com.astravastra.authentication_service.service.AuthService;
@@ -58,6 +59,16 @@ public class AuthController {
 			response.setMessage("Failed to resend OTP");
 			response.setStatus(false);
 		}
+		return ResponseEntity.ok(response);
+	}
+	
+	@PostMapping("/refresh")
+	public ResponseEntity<TokenRefreshResponse> refreshTokens(@RequestHeader("Authorization") String authHeader) {
+		
+		String refreshToken = authHeader.substring(7);
+		
+		TokenRefreshResponse response = authService.refreshAccessToken(refreshToken);
+		
 		return ResponseEntity.ok(response);
 	}
 	

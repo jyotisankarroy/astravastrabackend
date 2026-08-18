@@ -31,6 +31,14 @@ public class UserController {
 		return ResponseEntity.ok(profileByEmail);
 	}
 	
+	@PostMapping("/edit-profile")
+	public ResponseEntity<ResponseDto> updateProfile(@RequestBody RegisterRequest request, @RequestHeader("X-Auth-User-Email") String userEmail) {
+
+		ResponseDto updateProfile = userService.updateProfile(request, userEmail);
+
+		return ResponseEntity.ok(updateProfile);
+	}
+	
 	@PostMapping("/save-address")
 	public ResponseEntity<ResponseDto> upsertAddress(@RequestBody RegisterRequest request) {
 
