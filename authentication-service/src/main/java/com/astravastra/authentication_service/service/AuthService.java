@@ -172,11 +172,11 @@ public class AuthService {
 		
 		TokenResponse response = new TokenResponse();
 		response.setMessage("Token refreshed successfully");
-		response.setToken(newRefreshToken);
+		response.setToken(newAccessToken);
 		response.setRefreshToken(newRefreshToken);
 		response.setStatus(true);
 
-		return new TokenResponse();
+		return response;
 	}
 
 	@Transactional
