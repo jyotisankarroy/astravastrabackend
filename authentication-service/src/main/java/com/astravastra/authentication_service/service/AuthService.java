@@ -51,7 +51,7 @@ public class AuthService {
 		otpRecord.setEmail(email);
 		otpRecord.setOtp_code(otp);
 		otpRecord.setExpires_at(LocalDateTime.now().plusMinutes(5));
-		otpRecord.setIs_used(false);
+		otpRecord.set_used(false);
 		otpRecord.setCreated_at(LocalDateTime.now());
 
 		otpRepository.save(otpRecord);
@@ -81,12 +81,12 @@ public class AuthService {
 		if (otpRecord.getExpires_at().isBefore(LocalDateTime.now())) {
 			response.setStatus(false);
 			response.setExistingUser(false);
-			response.setMessage("OTP has expired");
+			response.setMessage("OTP has expired. Resend OTP");
 			return response;
 		}
 
 		// Mark OTP as used
-		otpRecord.setIs_used(true);
+		otpRecord.set_used(true);
 		otpRepository.save(otpRecord);
 
 		// Check user exists

@@ -1,12 +1,16 @@
 package com.astravastra.authentication_service.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
+@Data
 @Table(name = "blacklisted_tokens")
 public class BlacklistedToken {
 
@@ -44,10 +48,4 @@ public class BlacklistedToken {
 		this.expiresAt = expiresAt;
 	}
 
-	public BlacklistedToken(Long id, String token, Date expiresAt) {
-		this.id = id;
-		this.token = token;
-		this.expiresAt = expiresAt;
-	}
-    
 }

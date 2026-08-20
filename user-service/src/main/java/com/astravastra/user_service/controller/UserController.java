@@ -40,9 +40,9 @@ public class UserController {
 	}
 	
 	@PostMapping("/save-address")
-	public ResponseEntity<ResponseDto> upsertAddress(@RequestBody RegisterRequest request) {
+	public ResponseEntity<ResponseDto> upsertAddress(@RequestBody RegisterRequest request, @RequestHeader("X-Auth-User-Email") String userEmail) {
 
-		ResponseDto upsertAddress = userService.upsertAddress(request);
+		ResponseDto upsertAddress = userService.upsertAddress(request, userEmail);
 
 		return ResponseEntity.ok(upsertAddress);
 	}

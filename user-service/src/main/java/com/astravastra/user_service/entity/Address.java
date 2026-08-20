@@ -1,6 +1,6 @@
 package com.astravastra.user_service.entity;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,28 +20,32 @@ public class Address {
 	
 	private Long user_id;
 	
-	private String name;
+	private String first_name;
+	
+	private String last_name;
 	
 	private String phone;
 
 	private String address;
     
-    private String address_type;
+    private Long address_type;
     
     private String city;
     
-    private String state;
+    private Long state;
     
     private String landmark;
     
-    private String pin_code;
+    private Long pin_code;
     
-    private String is_default;
+    private String country;
+    
+    private Boolean is_default;
     
     private Integer status;
     
-    private Date created_at;
+    private LocalDateTime created_at;
     
-    private Date modified_at;
+    private LocalDateTime modified_at;
 
 }

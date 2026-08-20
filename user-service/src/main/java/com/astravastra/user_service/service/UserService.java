@@ -2,8 +2,8 @@ package com.astravastra.user_service.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.astravastra.user_service.dto.AddressResponse;
 import com.astravastra.user_service.dto.RegisterRequest;
 import com.astravastra.user_service.dto.ResponseDto;
+import com.astravastra.user_service.dto.UserDetails;
 import com.astravastra.user_service.entity.Address;
 import com.astravastra.user_service.entity.Users;
 import com.astravastra.user_service.repository.AddressRepository;
@@ -34,7 +35,16 @@ public class UserService {
 		Users user = userRepository.findUserByEmail(email);
 
 		if (user != null) {
-	    	response.setData(user);
+			UserDetails details = new UserDetails();
+			details.setFirstName(user.getFirst_name());
+			details.setLastName(user.getLast_name());
+			details.setEmail(user.getEmail());
+			details.setPhone(user.getPhone());
+			details.setGender(user.getGender());
+			details.setDob(user.getDob());
+			details.setLocation(user.getLocation());
+			details.setPinCode(user.getPin_code());
+	    	response.setData(details);
 	        response.setMessage("User details fetched successfully");
 	        response.setStatus(true);
 	    } else {
@@ -45,9 +55,9 @@ public class UserService {
 	    return response;
 	}
 	
-	public ResponseDto upsertAddress(RegisterRequest request) {
+	public ResponseDto upsertAddress(RegisterRequest request, String userEmail) {
 
-		Users existsByEmail = userRepository.findUserByEmail(request.getEmail());
+		Users existsByEmail = userRepository.findUserByEmail(userEmail);
 
 		if (existsByEmail == null) {
 			return new ResponseDto(false, "User not found", null);
@@ -71,17 +81,18 @@ public class UserService {
 				return new ResponseDto(false, "Unauthorized access to address", null);
 			}
 
-			address.setModified_at(new Date());
+			address.setModified_at(LocalDateTime.now());
 
 		} else {
 			// Add Address
 			address = new Address();
 			address.setUser_id(existsByEmail.getId());
-			address.setCreated_at(new Date());
+			address.setCreated_at(LocalDateTime.now());
 		}
 
 		// Common fields (both add & update)
-		address.setName(request.getName());
+		address.setFirst_name(request.getFirstName());
+		address.setLast_name(request.getLastName());
 		address.setPhone(request.getPhone());
 		address.setAddress(request.getAddress());
 		address.setAddress_type(request.getAddressType());
@@ -89,7 +100,9 @@ public class UserService {
 		address.setState(request.getState());
 		address.setPin_code(request.getPinCode());
 		address.setLandmark(request.getLandmark());
-		address.setIs_default(request.getIsDefault());
+		address.setIs_default(request.isDefault());
+		address.setStatus(0);
+		address.setCountry("IN");
 
 		addressRepository.save(address);
 
@@ -109,7 +122,6 @@ public class UserService {
 		existingUser.setLast_name(request.getLastName());
 		existingUser.setGender(request.getGender());
 		existingUser.setDob(request.getDob());
-		existingUser.setMiddle_name(request.getMiddleName());
 		existingUser.setLocation(request.getLocation());
 		existingUser.setPin_code(request.getPinCode());
 		existingUser.setModified_at(LocalDateTime.now());
@@ -131,20 +143,22 @@ public class UserService {
 
 	    Long userId = userOpt.getId();
 
-	    List<Address> addresses = addressRepository.findByUserId(userId);
+	    List<Map<String, Object>> addressList = addressRepository.findAddressListByUserId(userId);
 	    
-	    for (Address a : addresses) {
+	    for (Map<String, Object> address : addressList) {
 	    	AddressResponse response = new AddressResponse();
-	    	response.setAddressId(a.getId());
-	    	response.setName(a.getName());
-	    	response.setPhone(a.getPhone());
-	    	response.setAddress(a.getAddress());
-	    	response.setAddressType(a.getAddress_type());
-	    	response.setCity(a.getCity());
-	    	response.setState(a.getState());
-	    	response.setPinCode(a.getPin_code());
-	    	response.setLandmark(a.getLandmark());
-	    	response.setIsDefault(a.getIs_default());
+	    	response.setAddressId(Long.parseLong(address.get("id").toString()));
+	    	response.setFirstName(address.get("first_name").toString());
+	    	response.setLastName(address.get("last_name").toString());
+	    	response.setPhone(address.get("phone").toString());
+	    	response.setAddress(address.get("address").toString());
+	    	response.setAddressType(address.get("addType").toString());
+	    	response.setCity(address.get("city").toString());
+	    	response.setState(address.get("stName").toString());
+	    	response.setPinCode(Long.parseLong(address.get("pin_code").toString()));
+	    	response.setLandmark(address.get("landmark").toString());
+	    	Object value = address.get("is_default");
+	    	response.setDefault(value != null && ((Byte) value) == 1);
 	    	
 	    	responseList.add(response);
 		}

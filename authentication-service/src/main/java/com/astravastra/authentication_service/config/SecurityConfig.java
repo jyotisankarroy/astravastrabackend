@@ -23,12 +23,17 @@ public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthFilter;
 	private final AuthenticationProvider authenticationProvider;
 	private final LogoutHandler logoutHandler;
+	private final CustomAuthenticationEntryPoint authEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
 	public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, AuthenticationProvider authenticationProvider,
-			LogoutHandler logoutHandler) {
+			LogoutHandler logoutHandler, CustomAuthenticationEntryPoint authEntryPoint,
+			CustomAccessDeniedHandler accessDeniedHandler) {
 		this.jwtAuthFilter = jwtAuthFilter;
 		this.authenticationProvider = authenticationProvider;
 		this.logoutHandler = logoutHandler;
+		this.authEntryPoint = authEntryPoint;
+		this.accessDeniedHandler = accessDeniedHandler;
 	}
 
 	@Bean
@@ -46,7 +51,11 @@ public class SecurityConfig {
 						.logoutSuccessHandler((request, response, authentication) -> {
 							SecurityContextHolder.clearContext();
 							response.setStatus(HttpServletResponse.SC_OK);
-						}));
+						}))
+				.exceptionHandling(ex -> ex
+		                .authenticationEntryPoint(authEntryPoint)
+		                .accessDeniedHandler(accessDeniedHandler)
+		            );
 
 		return http.build();
 	}

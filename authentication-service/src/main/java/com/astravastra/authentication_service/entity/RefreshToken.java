@@ -1,12 +1,16 @@
 package com.astravastra.authentication_service.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
+@Data
 @Table(name = "refresh_tokens")
 public class RefreshToken {
 
@@ -24,43 +28,4 @@ public class RefreshToken {
     @Column(name = "expiry_date", nullable = false)
     private Date expiryDate;
 
-	public RefreshToken(long id, Users user, String token, Date expiryDate) {
-		this.id = id;
-		this.user = user;
-		this.token = token;
-		this.expiryDate = expiryDate;
-	}
-
-	public long getId() {
-		return id;
-	}
-
-	public void setId(long id) {
-		this.id = id;
-	}
-
-	public Users getUser() {
-		return user;
-	}
-
-	public void setUser(Users user) {
-		this.user = user;
-	}
-
-	public String getToken() {
-		return token;
-	}
-
-	public void setToken(String token) {
-		this.token = token;
-	}
-
-	public Date getExpiryDate() {
-		return expiryDate;
-	}
-
-	public void setExpiryDate(Date expiryDate) {
-		this.expiryDate = expiryDate;
-	}
-    
 }
