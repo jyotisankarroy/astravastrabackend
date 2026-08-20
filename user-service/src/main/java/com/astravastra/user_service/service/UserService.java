@@ -13,8 +13,12 @@ import com.astravastra.user_service.dto.RegisterRequest;
 import com.astravastra.user_service.dto.ResponseDto;
 import com.astravastra.user_service.dto.UserDetails;
 import com.astravastra.user_service.entity.Address;
+import com.astravastra.user_service.entity.AddressType;
+import com.astravastra.user_service.entity.State;
 import com.astravastra.user_service.entity.Users;
 import com.astravastra.user_service.repository.AddressRepository;
+import com.astravastra.user_service.repository.AddressTypeRepository;
+import com.astravastra.user_service.repository.StateRepository;
 import com.astravastra.user_service.repository.UserRepository;
 
 @Service
@@ -22,10 +26,45 @@ public class UserService {
 	
 	private final UserRepository userRepository;
 	private final AddressRepository addressRepository;
+	private final AddressTypeRepository addressTypeRepository;
+	private final StateRepository stateRepository;
 	
-	public UserService(UserRepository userRepository, AddressRepository addressRepository) {
+	public UserService(UserRepository userRepository, AddressRepository addressRepository,
+			AddressTypeRepository addressTypeRepository, StateRepository stateRepository) {
 		this.userRepository = userRepository;
 		this.addressRepository = addressRepository;
+		this.addressTypeRepository = addressTypeRepository;
+		this.stateRepository = stateRepository;
+	}
+	
+	public ResponseDto getAllState() {
+		List<State> stateList = stateRepository.findAll();
+		ResponseDto response = new ResponseDto();
+		if (!stateList.isEmpty()) {
+			response.setStatus(true);
+			response.setMessage("data fetched successfully");
+			response.setData(stateList);
+		} else {
+			response.setStatus(false);
+			response.setMessage("unable to fetch data");
+		}
+		
+		return response;
+	}
+	
+	public ResponseDto getAddressType() {
+		List<AddressType> typeList = addressTypeRepository.findAllAddressTypes();
+		ResponseDto response = new ResponseDto();
+		if (!typeList.isEmpty()) {
+			response.setStatus(true);
+			response.setMessage("data fetched successfully");
+			response.setData(typeList);
+		} else {
+			response.setStatus(false);
+			response.setMessage("unable to fetch data");
+		}
+		
+		return response;
 	}
 
 	public ResponseDto getProfileByEmail(String email) {

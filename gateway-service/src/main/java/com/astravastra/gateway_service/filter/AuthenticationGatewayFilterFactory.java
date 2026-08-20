@@ -32,11 +32,17 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
         return (exchange, chain) -> {
         	
             ServerHttpRequest request = exchange.getRequest();
+            String path = request.getURI().getPath();
             
             // Bypass the filter for CORS preflight (OPTIONS) requests
             if (request.getMethod().name().equals("OPTIONS")) {
                 return chain.filter(exchange);
             }
+            
+			if (path.contains("/api/auth") || path.startsWith("/actuator") || path.startsWith("/api/user/address-type")
+					|| path.startsWith("/api/user/state")) {
+				return chain.filter(exchange);
+			}
 
             // Check if the Authorization header is present
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {

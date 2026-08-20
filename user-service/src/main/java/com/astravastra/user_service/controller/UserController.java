@@ -21,6 +21,22 @@ public class UserController {
 	public UserController(UserService userService) {
 		this.userService = userService;
 	}
+	
+	@GetMapping("/state")
+	public ResponseEntity<ResponseDto> getAllState() {
+
+		ResponseDto states = userService.getAllState();
+
+		return ResponseEntity.ok(states);
+	}
+	
+	@GetMapping("/address-type")
+	public ResponseEntity<ResponseDto> getAddressType() {
+
+		ResponseDto addressTypes = userService.getAddressType();
+
+		return ResponseEntity.ok(addressTypes);
+	}
 
 	@GetMapping("/profile")
 	public ResponseEntity<ResponseDto> getUserProfile(@RequestHeader("X-Auth-User-Email") String userEmail) {

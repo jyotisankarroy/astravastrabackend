@@ -13,7 +13,7 @@ public class State {
 	@Id
 	private Long state_id;
 	
-	private Character state_code;
+	private String state_code;
 	
 	private String state_name;
 	
