@@ -13,10 +13,9 @@ import com.astravastra.user_service.entity.Address;
 @Repository
 public interface AddressRepository extends JpaRepository<Address, Long>{
 	
-	@Query(value = "SELECT a.*, at.name AS addType, s.state_name AS stName "
+	@Query(value = "SELECT a.*, at.name AS addType "
 			+ "FROM addresses a "
 			+ "JOIN mst_address_types at ON at.id = a.address_type "
-			+ "JOIN mst_states s ON s.state_id = a.state "
 			+ "WHERE user_id=:userId", nativeQuery = true)
 	List<Map<String, Object>> findAddressListByUserId(@Param("userId") long userId);
 

@@ -30,9 +30,11 @@ public class Address {
     
     private Long address_type;
     
-    private String city;
+    private String district;
     
-    private Long state;
+    private String state;
+    
+    private String post_office;
     
     private String landmark;
     

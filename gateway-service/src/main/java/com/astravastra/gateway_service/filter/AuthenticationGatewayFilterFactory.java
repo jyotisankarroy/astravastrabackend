@@ -39,8 +39,7 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
                 return chain.filter(exchange);
             }
             
-			if (path.contains("/api/auth") || path.startsWith("/actuator") || path.startsWith("/api/user/address-type")
-					|| path.startsWith("/api/user/state")) {
+			if (path.contains("/api/auth") || path.startsWith("/actuator")) {
 				return chain.filter(exchange);
 			}
 

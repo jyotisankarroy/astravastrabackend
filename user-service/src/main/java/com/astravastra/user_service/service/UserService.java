@@ -14,11 +14,9 @@ import com.astravastra.user_service.dto.ResponseDto;
 import com.astravastra.user_service.dto.UserDetails;
 import com.astravastra.user_service.entity.Address;
 import com.astravastra.user_service.entity.AddressType;
-import com.astravastra.user_service.entity.State;
 import com.astravastra.user_service.entity.Users;
 import com.astravastra.user_service.repository.AddressRepository;
 import com.astravastra.user_service.repository.AddressTypeRepository;
-import com.astravastra.user_service.repository.StateRepository;
 import com.astravastra.user_service.repository.UserRepository;
 
 @Service
@@ -27,29 +25,12 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final AddressRepository addressRepository;
 	private final AddressTypeRepository addressTypeRepository;
-	private final StateRepository stateRepository;
 	
 	public UserService(UserRepository userRepository, AddressRepository addressRepository,
-			AddressTypeRepository addressTypeRepository, StateRepository stateRepository) {
+			AddressTypeRepository addressTypeRepository) {
 		this.userRepository = userRepository;
 		this.addressRepository = addressRepository;
 		this.addressTypeRepository = addressTypeRepository;
-		this.stateRepository = stateRepository;
-	}
-	
-	public ResponseDto getAllState() {
-		List<State> stateList = stateRepository.findAll();
-		ResponseDto response = new ResponseDto();
-		if (!stateList.isEmpty()) {
-			response.setStatus(true);
-			response.setMessage("data fetched successfully");
-			response.setData(stateList);
-		} else {
-			response.setStatus(false);
-			response.setMessage("unable to fetch data");
-		}
-		
-		return response;
 	}
 	
 	public ResponseDto getAddressType() {
@@ -127,6 +108,8 @@ public class UserService {
 			address = new Address();
 			address.setUser_id(existsByEmail.getId());
 			address.setCreated_at(LocalDateTime.now());
+			address.setStatus(0);
+			address.setCountry("India");
 		}
 
 		// Common fields (both add & update)
@@ -135,13 +118,12 @@ public class UserService {
 		address.setPhone(request.getPhone());
 		address.setAddress(request.getAddress());
 		address.setAddress_type(request.getAddressType());
-		address.setCity(request.getCity());
+		address.setDistrict(request.getDistrict());
+		address.setPost_office(request.getPostOffice());
 		address.setState(request.getState());
 		address.setPin_code(request.getPinCode());
 		address.setLandmark(request.getLandmark());
 		address.setIs_default(request.isDefault());
-		address.setStatus(0);
-		address.setCountry("IN");
 
 		addressRepository.save(address);
 
@@ -192,8 +174,9 @@ public class UserService {
 	    	response.setPhone(address.get("phone").toString());
 	    	response.setAddress(address.get("address").toString());
 	    	response.setAddressType(address.get("addType").toString());
-	    	response.setCity(address.get("city").toString());
-	    	response.setState(address.get("stName").toString());
+	    	response.setDistrict(address.get("district").toString());
+	    	response.setState(address.get("state").toString());
+	    	response.setPostOffice(address.get("post_office").toString());
 	    	response.setPinCode(Long.parseLong(address.get("pin_code").toString()));
 	    	response.setLandmark(address.get("landmark").toString());
 	    	Object value = address.get("is_default");

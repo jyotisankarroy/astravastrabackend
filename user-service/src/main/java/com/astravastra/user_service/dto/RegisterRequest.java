@@ -7,8 +7,6 @@ public class RegisterRequest {
 	
 	private String firstName;
 	
-	private String middleName;
-
 	private String lastName;
 
 	private String email;
@@ -23,9 +21,11 @@ public class RegisterRequest {
 
 	private long addressType;
 
-	private String city;
+	private String district;
+	
+	private String postOffice;
 
-	private long state;
+	private String state;
 
 	private String location;
 	

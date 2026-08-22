@@ -11,7 +11,8 @@ public class AddressResponse {
     private String phone;
     private String address;
     private String addressType;
-    private String city;
+    private String postOffice;
+    private String district;
     private String state;
     private long pinCode;
     private String landmark;

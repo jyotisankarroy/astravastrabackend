@@ -22,14 +22,6 @@ public class UserController {
 		this.userService = userService;
 	}
 	
-	@GetMapping("/state")
-	public ResponseEntity<ResponseDto> getAllState() {
-
-		ResponseDto states = userService.getAllState();
-
-		return ResponseEntity.ok(states);
-	}
-	
 	@GetMapping("/address-type")
 	public ResponseEntity<ResponseDto> getAddressType() {
 
