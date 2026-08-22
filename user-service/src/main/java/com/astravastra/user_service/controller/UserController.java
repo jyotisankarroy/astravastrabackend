@@ -63,4 +63,14 @@ public class UserController {
 		return ResponseEntity.ok(addresses);
 	}
 	
+	@GetMapping("/delete-address")
+	public ResponseEntity<ResponseDto> deleteAddresses(@RequestBody RegisterRequest request, @RequestHeader("X-Auth-User-Email") String userEmail) {
+
+		ResponseDto addresses = userService.deleteAddresses(request.getAddressId(), userEmail);
+
+		return ResponseEntity.ok(addresses);
+	}
+	
+	
+	
 }

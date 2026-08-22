@@ -33,7 +33,7 @@ public class RegisterRequest {
 
 	private long pinCode;
 	
-	private boolean isDefault;
+	private Boolean isDefault;
 	
 	private Long addressId;
 	
