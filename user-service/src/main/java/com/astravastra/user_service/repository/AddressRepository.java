@@ -16,6 +16,6 @@ public interface AddressRepository extends JpaRepository<Address, Long>{
 	List<Address> findAddressListByUserId(@Param("userId") long userId);
 
 	@Query(value = "SELECT * FROM addresses WHERE id=:addressId AND status=1", nativeQuery = true)
-	Address findAddressById(@Param("userId") long addressId);
+	Address findAddressById(@Param("addressId") long addressId);
 
 }
