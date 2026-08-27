@@ -24,4 +24,6 @@ public class NavigationMenu {
     
     private String slug;
     
+    private String image;
+    
 }

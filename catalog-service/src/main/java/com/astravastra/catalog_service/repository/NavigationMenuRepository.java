@@ -11,5 +11,7 @@ import java.util.List;
 public interface NavigationMenuRepository extends JpaRepository<NavigationMenu, Integer> {
     
     List<NavigationMenu> findAllByOrderByDisplayOrderAsc();
+
+	List<NavigationMenu> findByParentId(long categoryId);
     
 }

@@ -9,12 +9,20 @@ import lombok.Data;
 public class Category {
 
     @Id
-    private Integer id;
-
-    @Column(name = "parent_id")
-    private Integer parentId;
+    private Long id;
 
     private String name;
-
+    
     private String slug;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parentId;
+
+    @Column(name = "seo_title")
+    private String seoTitle;
+
+    @Column(name = "seo_description")
+    private String seoDescription;
+    
 }

@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import com.astravastra.catalog_service.dto.MenuItemDTO;
 import com.astravastra.catalog_service.entity.NavigationMenu;
-import com.astravastra.catalog_service.repository.CategoryRepository;
 import com.astravastra.catalog_service.repository.NavigationMenuRepository;
 
 import java.util.*;
@@ -14,11 +13,8 @@ public class MegaMenuService {
 
     private final NavigationMenuRepository repository;
     
-    private final CategoryRepository catRepository;
-
-    public MegaMenuService(NavigationMenuRepository repository, CategoryRepository catRepository) {
+    public MegaMenuService(NavigationMenuRepository repository) {
         this.repository = repository;
-        this.catRepository = catRepository;
     }
 
 	public Map<String, Object> getMegaMenuTree() {

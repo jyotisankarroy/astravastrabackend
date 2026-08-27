@@ -22,12 +22,4 @@ public class MenuItemDTO {
     
     private List<MenuItemDTO> subCategory = new ArrayList<>();
 
-//    public MenuItemDTO(NavigationMenu menu) {
-//        this.id = menu.getId();
-//        this.label = menu.getLabel();
-//        this.categoryId = menu.getCategoryId();
-//        this.displayOrder = menu.getDisplayOrder();
-////        this.path = "/shop/" + label.toLowerCase().replace(" ", "-").replace("&", "and");
-//    }
-
 }
