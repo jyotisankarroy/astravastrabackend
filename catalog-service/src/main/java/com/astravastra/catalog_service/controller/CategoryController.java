@@ -3,7 +3,6 @@ package com.astravastra.catalog_service.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.astravastra.catalog_service.dto.CategoryDetailDTO;
 import com.astravastra.catalog_service.dto.ResponseDto;
 import com.astravastra.catalog_service.service.CategoryService;
 
@@ -25,12 +24,4 @@ public class CategoryController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("{slug}")
-    public ResponseEntity<CategoryDetailDTO> getCategoryBySlug(@PathVariable("slug") String slug) {
-    	
-        CategoryDetailDTO response = categoryService.getCategoryDetails(slug);
-        
-        return ResponseEntity.ok(response);
-    }
-    
 }
