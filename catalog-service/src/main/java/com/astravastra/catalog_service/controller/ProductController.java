@@ -17,14 +17,14 @@ public class ProductController {
         this.productService = productService;
     }
 
-    @PostMapping("/filter/categoryid/{categoryId}/limit/{page}/size/{size}")
+    @PostMapping("/filter/categoryid/{categoryId}/limit/{limit}/offset/{offset}")
     public ResponseEntity<ProductGridResponseDTO> getProducts(
     		@PathVariable Long categoryId,
-    		@PathVariable int page,
-    		@PathVariable int size,
+    		@PathVariable int limit,
+    		@PathVariable int offset,
     		@RequestBody ProductFilterRequest filterRequest) {
 
-        ProductGridResponseDTO response = productService.getProductsByCategory(filterRequest, categoryId, page, size);
+        ProductGridResponseDTO response = productService.getProductsByCategory(filterRequest, categoryId, offset, limit);
         
         return ResponseEntity.ok(response);
     }
