@@ -154,22 +154,28 @@ public class ProductService {
 	}
 
 	private ProductSummaryDTO mapToProductSummaryDTO(Product product) {
-
-		Double startingPrice = 0.0;
+		
+		Double price = 0.0;
 
 		if (product.getVariants() != null) {
 
 			for (ProductVariant variant : product.getVariants()) {
 
 				if (variant.getPrice() != null) {
+					
+					price = variant.getPrice();
 
-					if (startingPrice == 0.0 || variant.getPrice() < startingPrice) {
-
-						startingPrice = variant.getPrice();
-					}
 				}
 			}
 		}
+		
+		Integer discountPercentage = product.getDiscountPercentage();
+		
+		double discount = (discountPercentage != null) ? discountPercentage.doubleValue() : 0.0;
+		
+		double discountedPrice = price * (1.0 - (discount / 100.0));
+		
+		
 
 		List<String> availableSizes = new ArrayList<>();
 
@@ -184,26 +190,21 @@ public class ProductService {
 				}
 			}
 		}
-
-		String primaryImage = null;
+		
+		List<String> images = new ArrayList<>();
 
 		if (product.getImages() != null && !product.getImages().isEmpty()) {
 
 			for (ProductImage image : product.getImages()) {
 
-				if (Boolean.TRUE.equals(image.getIsPrimary())) {
-					primaryImage = image.getImageUrl();
-					break;
-				}
+				images.add(image.getImageUrl());
+
 			}
 
-			if (primaryImage == null) {
-				primaryImage = product.getImages().get(0).getImageUrl();
-			}
 		}
 
-		return ProductSummaryDTO.builder().productId(product.getId()).name(product.getName())
-				.startingPrice(startingPrice).availableSizes(availableSizes).images(primaryImage).brand(product.getBrand().getName()).build();
+		return ProductSummaryDTO.builder().productId(product.getId()).name(product.getName()).count(0l).discount(discount)
+				.price(price).offerPrice(discountedPrice).availableSizes(availableSizes).images(images).brand(product.getBrand().getName()).build();
 	}
 
 	private List<ProductSummaryDTO> sortProducts(List<ProductSummaryDTO> list, String sortParam) {
@@ -221,16 +222,16 @@ public class ProductService {
 					.reversed());
 			break;
 		case "discount": // Better Discount
-			list.sort(Comparator.comparing(ProductSummaryDTO::getDiscountPercentage).reversed());
+			list.sort(Comparator.comparing(ProductSummaryDTO::getDiscount).reversed());
 			break;
 		case "price_desc": // Price: High to Low
-			list.sort(Comparator.comparing(ProductSummaryDTO::getStartingPrice).reversed());
+			list.sort(Comparator.comparing(ProductSummaryDTO::getPrice).reversed());
 			break;
 		case "price_asc": // Price: Low to High
-			list.sort(Comparator.comparing(ProductSummaryDTO::getStartingPrice));
+			list.sort(Comparator.comparing(ProductSummaryDTO::getPrice));
 			break;
 		case "rating": // Customer Rating
-			list.sort(Comparator.comparing(ProductSummaryDTO::getCustomerRating).reversed());
+			list.sort(Comparator.comparing(ProductSummaryDTO::getRating).reversed());
 			break;
 		default:
 			// "recommended" or unrecognized fallback

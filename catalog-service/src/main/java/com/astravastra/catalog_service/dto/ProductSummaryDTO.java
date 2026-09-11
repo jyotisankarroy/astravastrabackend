@@ -11,11 +11,13 @@ public class ProductSummaryDTO {
 	
     private Long productId;
     private String name;
-    private Double startingPrice;
-    private String images;
+    private Double price;
+    private Double offerPrice;
+    private List<String> images;
     private Long popularityScore;
-    private Double customerRating;
-    private Long discountPercentage;
+    private Double rating;
+    private Long count;
+    private Double discount;
     private String addedDate;
     private List<String> availableSizes;
     private String brand;
