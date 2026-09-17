@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FilterOption {
+public class CategoryFilter {
 	
+    private Integer id;
+    
     private String name;
     
     private boolean checked;

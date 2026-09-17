@@ -4,7 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.astravastra.catalog_service.dto.ProductFilterRequest;
-import com.astravastra.catalog_service.dto.ProductGridResponseDTO;
+import com.astravastra.catalog_service.dto.ProductListingResponse;
 import com.astravastra.catalog_service.service.ProductService;
 
 @RestController
@@ -18,13 +18,13 @@ public class ProductController {
     }
 
     @PostMapping("/filter/categoryid/{categoryId}/limit/{limit}/offset/{offset}")
-    public ResponseEntity<ProductGridResponseDTO> getProducts(
+    public ResponseEntity<ProductListingResponse> getProducts(
     		@PathVariable Long categoryId,
     		@PathVariable int limit,
     		@PathVariable int offset,
     		@RequestBody ProductFilterRequest filterRequest) {
 
-        ProductGridResponseDTO response = productService.getProductsByCategory(filterRequest, categoryId, offset, limit);
+    	ProductListingResponse response = productService.getProductsByCategory(filterRequest, categoryId, offset, limit);
         
         return ResponseEntity.ok(response);
     }

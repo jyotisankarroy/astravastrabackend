@@ -6,21 +6,21 @@ import java.util.List;
 @Data
 public class ProductFilterRequest {
 	
-    private List<Long> categoryIds; // e.g., [101, 102]
+    private List<Long> categoryIds;
     
-    private List<String> brands;       // e.g., ["Roadster", "Puma"]
+    private List<String> brands;
     
-    private String gender;             // e.g., "Men"
+    private String gender;
     
-    private List<String> colors;       // e.g., ["Black", "Blue"]
+    private List<String> colors;
     
-    private List<String> sizes;        // e.g., ["M", "L", "XL"]
+    private List<String> sizes;
     
-    private Double minPrice;           // e.g., 500.00
+    private Double minPrice;
     
-    private Double maxPrice;           // e.g., 2000.00
+    private Double maxPrice;
     
-    private Integer minDiscount;       // e.g., 50 (for "50% and above")
+    private Integer discount;
     
     private String sort;
     

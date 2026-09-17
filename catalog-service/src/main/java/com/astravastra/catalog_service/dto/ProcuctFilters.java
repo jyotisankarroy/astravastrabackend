@@ -2,16 +2,20 @@ package com.astravastra.catalog_service.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-public class Filters {
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProcuctFilters {
 	
-	private List<BrandFilterOption> categories;
+	private List<CategoryFilter> categories;
 	
-	private List<BrandFilterOption> brands;
+	private List<CategoryFilter> brands;
     
     private List<FilterOption> colors;
     

@@ -2,64 +2,92 @@ package com.astravastra.catalog_service.service;
 
 import org.springframework.stereotype.Service;
 
-import com.astravastra.catalog_service.dto.MenuItemDTO;
-import com.astravastra.catalog_service.entity.NavigationMenu;
-import com.astravastra.catalog_service.repository.NavigationMenuRepository;
+import com.astravastra.catalog_service.dto.CategoryMenuResponse;
+import com.astravastra.catalog_service.dto.DepartmentMenuResponse;
+import com.astravastra.catalog_service.dto.ResponseDto;
+import com.astravastra.catalog_service.entity.Category;
+import com.astravastra.catalog_service.entity.Department;
+import com.astravastra.catalog_service.repository.CategoryRepository;
+import com.astravastra.catalog_service.repository.DepartmentRepository;
 
 import java.util.*;
 
 @Service
 public class MegaMenuService {
+	
+	private final CategoryRepository categoryRepository;
+	
+	private final DepartmentRepository departmentRepository;
 
-    private final NavigationMenuRepository repository;
-    
-    public MegaMenuService(NavigationMenuRepository repository) {
-        this.repository = repository;
+    public MegaMenuService(CategoryRepository categoryRepository, DepartmentRepository departmentRepository) {
+        this.categoryRepository = categoryRepository;
+		this.departmentRepository = departmentRepository;
     }
 
-	public Map<String, Object> getMegaMenuTree() {
-        // Fetch all rows in one single fast DB query
-        List<NavigationMenu> allMenus = repository.findAllByOrderByDisplayOrderAsc();
-        
+	public ResponseDto getNavigationMenu() {
+		
+		ResponseDto response = new ResponseDto();
+		List<Department> allDept = departmentRepository.findAll();
+		
+		List<DepartmentMenuResponse> menuResponse = new ArrayList<>();
+		
+		for (Department department : allDept) {
 
-        // Create Maps to hold DTOs and identify the root elements
-        Map<Long, MenuItemDTO> dtoMap = new HashMap<>();
-        List<MenuItemDTO> rootNodes = new ArrayList<>();
+	        DepartmentMenuResponse deptResponse = new DepartmentMenuResponse();
 
-        // Convert all Database Entities to JSON DTOs
-        for (NavigationMenu menu : allMenus) {
-        	MenuItemDTO dto = new MenuItemDTO();
-        	dto.setCategoryId(menu.getCategoryId());
-        	dto.setDisplayOrder(menu.getDisplayOrder());
-        	dto.setId(menu.getId());
-        	dto.setLabel(menu.getLabel());
-        	dto.setPath(menu.getSlug());
-        	
-            dtoMap.put(menu.getId(), dto);
-        }
+	        deptResponse.setId(department.getId());
+	        deptResponse.setLabel(department.getName().toUpperCase());
+	        deptResponse.setPath(department.getSlug());
+	        deptResponse.setDisplayOrder(department.getSort_order());
 
-        // Assemble the Tree
-        for (NavigationMenu menu : allMenus) {
-            MenuItemDTO currentDto = dtoMap.get(menu.getId());
+	        List<CategoryMenuResponse> categoryResponses = new ArrayList<>();
 
-            if (menu.getParentId() == null) {
-                // If it has no parent, it's a Root Tab (MEN, WOMEN, KIDS)
-                rootNodes.add(currentDto);
-            } else {
-                // If it has a parent, attach it to the parent's children array
-                MenuItemDTO parentDto = dtoMap.get(menu.getParentId());
-                if (parentDto != null) {
-                    parentDto.getSubCategory().add(currentDto);
-                }
-            }
-        }
+	        List<Category> allCategories =
+	                categoryRepository.findAllCtegoriesByDeptId(department.getId());
 
-        // Wrap in the final response format
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", true);
-        response.put("data", rootNodes);
-        
-        return response;
+	        for (Category category : allCategories) {
+
+	            CategoryMenuResponse categoryResponse = buildCategoryResponse(category);
+
+	            categoryResponses.add(categoryResponse);
+	        }
+
+	        deptResponse.setSubCategory(categoryResponses);
+
+	        menuResponse.add(deptResponse);
+	    }
+
+		response.setStatus(true);
+		response.setData(menuResponse);
+	    return response;
     }
+	
+	private CategoryMenuResponse buildCategoryResponse(Category category) {
+
+	    CategoryMenuResponse response = new CategoryMenuResponse();
+
+	    response.setId(category.getId());
+	    response.setLabel(category.getMenuName());
+	    response.setPath(category.getSlug());
+	    response.setDisplayOrder(category.getSortOrder());
+
+	    List<CategoryMenuResponse> subCategoryResponses =
+	            new ArrayList<>();
+
+	    List<Category> allSubCategories =
+	            categoryRepository.findAllSubCtegoriesByParentId(category.getId());
+
+	    for (Category subCategory : allSubCategories) {
+
+	        CategoryMenuResponse subResponse =
+	                buildCategoryResponse(subCategory);
+
+	        subCategoryResponses.add(subResponse);
+	    }
+
+	    response.setSubCategory(subCategoryResponses);
+
+	    return response;
+	}
     
 }

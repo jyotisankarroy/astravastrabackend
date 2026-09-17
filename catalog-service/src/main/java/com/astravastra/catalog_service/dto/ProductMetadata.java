@@ -1,5 +1,7 @@
 package com.astravastra.catalog_service.dto;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,12 +11,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BrandFilterOption {
+public class ProductMetadata {
 	
-    private Integer id;
-    
-    private String name;
-    
-    private boolean checked;
+    private long totalItems;
+    private List<BreadcrumbResponse> breadcrumb;    
     
 }

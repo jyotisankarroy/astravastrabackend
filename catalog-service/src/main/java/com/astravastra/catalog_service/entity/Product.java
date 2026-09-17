@@ -26,24 +26,33 @@ public class Product {
 	private String name;
 	
 	private String description;
+	
+	@Column(name = "short_description")
+	private String shortDescription;
+	
+	private String status;
+	
+	private String slug;
+	
+	private String gender;
 
-	@Column(name = "popularity_score")
-	private Integer popularityScore;
+	@Column(name = "primary_colour")
+	private String primaryColour;
 
-	@Column(name = "customer_rating")
-	private Double customerRating;
+	@Column(name = "category_name")
+	private String categoryName;
 
 	@Column(name = "discount_percentage")
 	private Integer discountPercentage;
 
-	@Column(name = "added_date")
+	@Column(name = "created_at")
 	private LocalDateTime addedDate;
+	
+	@Column(name = "updated_at")
+	private LocalDateTime updatedDate;
 
 	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
 	private List<ProductVariant> variants;
-
-	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-	private List<ProductImage> images;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")

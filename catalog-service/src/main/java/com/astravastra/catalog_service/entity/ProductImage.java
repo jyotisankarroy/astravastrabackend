@@ -13,15 +13,22 @@ import lombok.Data;
 @Table(name = "product_images")
 @Data
 public class ProductImage {
-    @Id
+	
+	@Id
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "alt_text")
+    private String altText;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
 
     @Column(name = "is_primary")
     private Boolean isPrimary;

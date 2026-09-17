@@ -3,13 +3,14 @@ package com.astravastra.catalog_service.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.astravastra.catalog_service.dto.BrandFilterOption;
+import com.astravastra.catalog_service.dto.BreadcrumbResponse;
+import com.astravastra.catalog_service.dto.CategoryFilter;
 import com.astravastra.catalog_service.dto.FilterOption;
-import com.astravastra.catalog_service.dto.Filters;
-import com.astravastra.catalog_service.dto.Metadata;
+import com.astravastra.catalog_service.dto.ProcuctFilters;
 import com.astravastra.catalog_service.dto.ProductFilterRequest;
-import com.astravastra.catalog_service.dto.ProductGridResponseDTO;
-import com.astravastra.catalog_service.dto.ProductSummaryDTO;
+import com.astravastra.catalog_service.dto.ProductListingResponse;
+import com.astravastra.catalog_service.dto.ProductMetadata;
+import com.astravastra.catalog_service.dto.ProductResponse;
 import com.astravastra.catalog_service.entity.Brand;
 import com.astravastra.catalog_service.entity.Category;
 import com.astravastra.catalog_service.entity.Product;
@@ -19,12 +20,10 @@ import com.astravastra.catalog_service.repository.CategoryRepository;
 import com.astravastra.catalog_service.repository.ProductRepository;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Service
 public class ProductService {
@@ -38,204 +37,325 @@ public class ProductService {
 	}
 
 	@Transactional(readOnly = true)
-	public ProductGridResponseDTO getProductsByCategory(ProductFilterRequest filterRequest, Long categoryId, int page, int size) {
+	public ProductListingResponse getProductsByCategory(ProductFilterRequest filterRequest, Long categoryId, int offset,
+			int limit) {
 
-		// Fetch all products for the category
-		List<Product> productPage = productRepository.findByCategoryId(categoryId, size, page);
+		ProductListingResponse response = new ProductListingResponse();
 
-		Long totalProductCount = productRepository.totalCountsByCategoryId(categoryId);
+		// category hierarchy
+		List<Long> categoryIds = getCategoryIds(categoryId);
 
-		// Fetch the target category
-		Category category = categoryRepository.findById(categoryId)
-				.orElseThrow(() -> new RuntimeException("Category not found : " + categoryId));
-
-		List<ProductSummaryDTO> productDTOs = new ArrayList<>();
-
-		// Map Entities to DTOs
-		for (Product product : productPage) {
-
-			ProductSummaryDTO dto = mapToProductSummaryDTO(product);
-
-			productDTOs.add(dto);
+		// if UI has selected category filters, use those selected categories instead.
+		if (filterRequest.getCategoryIds() != null && !filterRequest.getCategoryIds().isEmpty()) {
+			categoryIds = filterRequest.getCategoryIds();
 		}
 
-		// Apply the Sorting Logic
-		sortProducts(productDTOs, filterRequest.getSort());
+		// normalize filters
+		List<String> brands = nullIfEmpty(filterRequest.getBrands());
+		List<String> colors = nullIfEmpty(filterRequest.getColors());
+		List<String> sizes = nullIfEmpty(filterRequest.getSizes());
 
-		// Build breadcrumb Trail
-		List<String> breadcrumbLabels = new ArrayList<>();
-		Category current = category;
+		boolean brandsEnabled = brands != null && !brands.isEmpty();
+		boolean colorsEnabled = colors != null && !colors.isEmpty();
+		boolean sizesEnabled = sizes != null && !sizes.isEmpty();
 
-		// Climb the category tree
+		String sort = filterRequest.getSort();
+
+		if (sort == null || sort.isBlank()) {
+			sort = "recommended";
+		}
+
+		// get filtered products
+		List<Product> products = productRepository.findFilteredProducts(categoryIds, brands, brandsEnabled,
+				filterRequest.getGender(), colors, colorsEnabled, sizes, sizesEnabled, filterRequest.getMinPrice(),
+				filterRequest.getMaxPrice(), filterRequest.getDiscount(), offset, limit);
+
+		// total count
+		long totalItems = productRepository.countProductsByCategoryIds(categoryIds);
+
+		// metadata
+		ProductMetadata metadata = new ProductMetadata();
+		metadata.setTotalItems(totalItems);
+		metadata.setBreadcrumb(buildBreadcrumb(categoryId));
+		response.setMetadata(metadata);
+
+		// filters
+		ProcuctFilters filters = new ProcuctFilters();
+
+		filters.setCategories(getCategoryFilters(categoryId, filterRequest));
+
+		filters.setBrands(getBrandFilters(categoryIds, filterRequest));
+
+		filters.setColors(getColorFilters(categoryIds, filterRequest));
+
+		filters.setSizes(getSizeFilters(categoryIds, filterRequest));
+
+		filters.setMinPrice(productRepository.findMinPrice(categoryIds));
+
+		filters.setMaxPrice(productRepository.findMaxPrice(categoryIds));
+
+		filters.setDiscountRanges(getDiscountRanges(filterRequest));
+
+		response.setFilters(filters);
+
+		// product response
+		response.setData(
+				products.stream().map(product -> convertToProductResponse(product, filterRequest.getSizes())).toList());
+
+		response.setStatus(true);
+
+		return response;
+
+	}
+
+	private List<Long> getCategoryIds(Long categoryId) {
+
+		List<Category> subCategories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+
+		if (subCategories.isEmpty()) {
+			return List.of(categoryId);
+		}
+
+		return subCategories.stream().map(Category::getId).toList();
+	}
+
+	private List<CategoryFilter> getCategoryFilters(Long categoryId, ProductFilterRequest request) {
+
+		List<Category> categories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+
+		List<Long> selectdCategoryIds = request.getCategoryIds();
+
+		List<CategoryFilter> filters = new ArrayList<>();
+
+		for (Category category : categories) {
+			Long countProductsByCategoryId = productRepository.countProductsByCategoryId(category.getId());
+			
+			CategoryFilter filter = new CategoryFilter();
+
+			filter.setId(category.getId().intValue());
+			filter.setName(category.getName());
+			filter.setChecked(selectdCategoryIds != null && selectdCategoryIds.contains(category.getId()));
+			filter.setCount(countProductsByCategoryId);
+			filters.add(filter);
+		}
+
+		return filters;
+	}
+
+	private List<CategoryFilter> getBrandFilters(List<Long> categoryIds, ProductFilterRequest request) {
+
+		List<Brand> brands = productRepository.findBrandsByCategoryIds(categoryIds);
+
+		List<String> selectedBrands = request.getBrands();
+
+		List<CategoryFilter> filters = new ArrayList<>();
+
+		for (Brand brand : brands) {
+			Long countProductsByBrandId = productRepository.countProductsByBrandId(brand.getId());
+
+			CategoryFilter filter = new CategoryFilter();
+
+			filter.setId(brand.getId());
+			filter.setName(brand.getName());
+			filter.setChecked(selectedBrands != null && selectedBrands.contains(brand.getName()));
+			filter.setCount(countProductsByBrandId);
+			filters.add(filter);
+		}
+
+		return filters;
+	}
+
+	private List<FilterOption> getColorFilters(List<Long> categoryIds, ProductFilterRequest request) {
+
+		List<String> colors = productRepository.findColorsByCategoryIds(categoryIds);
+
+		List<String> selectedColors = request.getColors();
+
+		List<FilterOption> filters = new ArrayList<>();
+
+		for (String color : colors) {
+			Long countProductsByColor = productRepository.countProductsByColor(color);
+
+			FilterOption filter = new FilterOption();
+
+			filter.setName(color);
+			filter.setChecked(selectedColors != null && selectedColors.contains(color));
+			filter.setCount(countProductsByColor);
+			filters.add(filter);
+		}
+
+		return filters;
+	}
+
+	private List<FilterOption> getSizeFilters(List<Long> categoryIds, ProductFilterRequest request) {
+
+		List<String> sizes = productRepository.findSizesByCategoryIds(categoryIds);
+
+		List<String> selectedSizes = request.getSizes();
+
+		List<FilterOption> filters = new ArrayList<>();
+
+		for (String size : sizes) {
+
+			FilterOption filter = new FilterOption();
+
+			filter.setName(size);
+			filter.setChecked(selectedSizes != null && selectedSizes.contains(size));
+			filters.add(filter);
+		}
+
+		return filters;
+	}
+
+	private List<FilterOption> getDiscountRanges(ProductFilterRequest request) {
+
+		List<FilterOption> ranges = new ArrayList<>();
+
+		Integer selectedDiscount = request.getDiscount();
+
+		for (int discount = 10; discount <= 60; discount += 10) {
+
+			FilterOption filter = new FilterOption();
+
+			filter.setName(discount + "% and above");
+			filter.setChecked(selectedDiscount != null && selectedDiscount == discount);
+
+			ranges.add(filter);
+		}
+
+		return ranges;
+	}
+
+	private List<BreadcrumbResponse> buildBreadcrumb(Long categoryId) {
+
+		List<BreadcrumbResponse> breadcrumbs = new ArrayList<>();
+
+		// Home
+		BreadcrumbResponse home = new BreadcrumbResponse();
+		home.setId(null);
+		home.setName("Home");
+		home.setSlug("/");
+
+		breadcrumbs.add(home);
+
+		// Get current category
+		Category currentCategory = categoryRepository.findById(categoryId).orElse(null);
+
+		if (currentCategory == null) {
+			return breadcrumbs;
+		}
+
+		// Store category hierarchy
+		List<Category> hierarchy = new ArrayList<>();
+
+		Category current = currentCategory;
+
 		while (current != null) {
 
-			breadcrumbLabels.add(current.getName());
+			hierarchy.add(current);
 
-			current = current.getParentId();
+			if (current.getParentId() == null) {
+				break;
+			}
+
+			current = categoryRepository.findById(current.getParentId()).orElse(null);
 		}
 
-		// Reverse: Clothing -> Men Topwear
-		Collections.reverse(breadcrumbLabels);
+		// Reverse: T-Shirts -> Topwear -> Clothing to Clothing -> Topwear -> T-Shirts
+		Collections.reverse(hierarchy);
 
-		// Add Home at beginning
-		breadcrumbLabels.add(0, "Home");
+		// Convert to breadcrumb response
+		for (Category category : hierarchy) {
 
-		String breadcrumb = String.join(" / ", breadcrumbLabels);
-		
-		// Fetch Dynamic Filters
-//		List<Map<String, Object>> categories = productRepository.findCategoriesByCategoryId(categoryId);
-		List<Brand> rawBrands = productRepository.findDistinctBrandsByCategoryId(categoryId);
-	    List<String> colors = productRepository.findDistinctColorsByCategoryId(categoryId);
-	    List<String> sizes = productRepository.findDistinctSizesByCategoryId(categoryId);
-	    Double minPrice = productRepository.findMinPriceByCategoryId(categoryId);
-	    Double maxPrice = productRepository.findMaxPriceByCategoryId(categoryId);
-	    
-//	    List<BrandFilterOption> categoryList = new ArrayList<>();
-//	    for (Map<String, Object> cat : categories) {
-//	    	BrandFilterOption filterOption = new BrandFilterOption();
-//	    	filterOption.setId(Integer.parseInt(cat.get("id").toString()));
-//	    	filterOption.setName(cat.get("label").toString());
-//	    	filterOption.setChecked(false);
-//	    	categoryList.add(filterOption);
-//		}
-	    
-	    List<FilterOption> colourList = new ArrayList<>();
-	    for (String string : colors) {
-	    	FilterOption filterOption = new FilterOption();
-	    	filterOption.setName(string);
-	    	filterOption.setChecked(false);
-	    	colourList.add(filterOption);
-		}
-	    
-	    List<FilterOption> sizeList = new ArrayList<>();
-	    for (String string : sizes) {
-	    	FilterOption filterOption = new FilterOption();
-	    	filterOption.setName(string);
-	    	filterOption.setChecked(false);
-	    	sizeList.add(filterOption);
-		}
-	    
-	    // Static standard discount ranges
-	    List<String> discountRanges = Arrays.asList(
-	            "10% and above", "20% and above", "30% and above",
-	            "40% and above", "50% and above", "60% and above"
-	    );
-	    
-	    List<FilterOption> discountRangsList = new ArrayList<>();
-	    for (String string : discountRanges) {
-	    	FilterOption filterOption = new FilterOption();
-	    	filterOption.setName(string);
-	    	filterOption.setChecked(false);
-	    	discountRangsList.add(filterOption);
-		}
-	    
-	    List<BrandFilterOption> brandFilters = rawBrands.stream()
-	    	    .map(b -> BrandFilterOption.builder()
-	    	            .id(b.getId())
-	    	            .name(b.getName())
-	    	            .build())
-	    	    .collect(Collectors.toList());
-	    
-	    Filters filters = Filters.builder()
-	    		.categories(new ArrayList<>())
-	            .brands(brandFilters)
-	            .colors(colourList)
-	            .sizes(sizeList)
-	            .minPrice(minPrice != null ? minPrice : 0.0)
-	            .maxPrice(maxPrice != null ? maxPrice : 0.0)
-	            .discountRanges(discountRangsList)
-	            .build();
+			BreadcrumbResponse breadcrumb = new BreadcrumbResponse();
 
-		// Build and return the final response
-		return ProductGridResponseDTO.builder().status(true)
-				.metadata(Metadata.builder().breadcrumb(breadcrumb).totalItems(totalProductCount).build())
-				.filters(filters)
-				.data(productDTOs).build();
+			breadcrumb.setId(category.getId());
+			breadcrumb.setName(category.getName());
+			breadcrumb.setSlug(category.getSlug());
+
+			breadcrumbs.add(breadcrumb);
+		}
+
+		return breadcrumbs;
 	}
 
-	private ProductSummaryDTO mapToProductSummaryDTO(Product product) {
-		
-		Double price = 0.0;
+	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes) {
 
-		if (product.getVariants() != null) {
+		ProductResponse response = new ProductResponse();
 
-			for (ProductVariant variant : product.getVariants()) {
+		// Product basic information
+		response.setProductId(product.getId());
+		response.setName(product.getName());
+		response.setAddedDate(product.getAddedDate());
 
-				if (variant.getPrice() != null) {
-					
-					price = variant.getPrice();
+//		// Discount
+//		response.setDiscount(
+//				product.getDiscountPercentage() != null ? product.getDiscountPercentage().doubleValue() : 0.0);
 
-				}
-			}
-		}
-		
-		Integer discountPercentage = product.getDiscountPercentage();
-		
-		double discount = (discountPercentage != null) ? discountPercentage.doubleValue() : 0.0;
-		
-		double discountedPrice = price * (1.0 - (discount / 100.0));
-		
-		
-
-		List<String> availableSizes = new ArrayList<>();
-
-		if (product.getVariants() != null) {
-
-			for (ProductVariant variant : product.getVariants()) {
-
-				if (variant.getStockQuantity() > 0 && variant.getSize() != null
-						&& !availableSizes.contains(variant.getSize())) {
-
-					availableSizes.add(variant.getSize());
-				}
-			}
-		}
-		
-		List<String> images = new ArrayList<>();
-
-		if (product.getImages() != null && !product.getImages().isEmpty()) {
-
-			for (ProductImage image : product.getImages()) {
-
-				images.add(image.getImageUrl());
-
-			}
-
+		// Brand
+		if (product.getBrand() != null) {
+			response.setBrand(product.getBrand().getName());
 		}
 
-		return ProductSummaryDTO.builder().productId(product.getId()).name(product.getName()).count(0l).discount(discount)
-				.price(price).offerPrice(discountedPrice).availableSizes(availableSizes).images(images).brand(product.getBrand().getName()).build();
+		// Variants
+		if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+
+			// Available sizes
+			response.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize)
+					.filter(Objects::nonNull).distinct()
+					.filter(size -> selectedSizes == null || selectedSizes.isEmpty() || selectedSizes.contains(size))
+					.toList());
+			
+			// Images
+			response.setImages(product.getVariants().stream().filter(v -> v.getImages() != null)
+	                .flatMap(v -> v.getImages().stream())
+	                .map(ProductImage::getImageUrl)
+	                .filter(Objects::nonNull)
+	                .distinct()
+	                .toList());
+
+			// Price
+			ProductVariant variant = product.getVariants().stream().filter(v -> v.getPrice() != null)
+					.min(Comparator.comparing(ProductVariant::getPrice)).orElse(null);
+			
+			if (variant != null) {
+
+			    Integer discountPercentage = product.getDiscountPercentage();
+			    double discount = (discountPercentage != null) ? discountPercentage.doubleValue() : 0.0;
+			    double discountedPrice = variant.getPrice() * (1.0 - (discount / 100.0));
+
+			    response.setPrice(variant.getPrice());
+			    response.setOfferPrice(discountedPrice);
+			    response.setDiscount(discount);
+			}
+			
+			// Quantity
+			Integer totalStock = product.getVariants().stream()
+			        .map(ProductVariant::getStockQuantity)
+			        .filter(Objects::nonNull)
+			        .mapToInt(Integer::intValue)
+			        .sum();
+
+			response.setCount(totalStock);
+
+		} else {
+
+			response.setAvailableSizes(new ArrayList<>());
+			response.setImages(new ArrayList<>());
+			response.setPrice(0.0);
+			response.setOfferPrice(0.0);
+		}
+
+		// These fields are not present in Product entity
+		response.setPopularityScore(null);
+		response.setRating(null);
+
+		return response;
 	}
 
-	private List<ProductSummaryDTO> sortProducts(List<ProductSummaryDTO> list, String sortParam) {
-		if (sortParam == null) {
-			return list; // Default "Recommended"
-		}
-
-		switch (sortParam.toLowerCase()) {
-		case "popularity":
-			list.sort(Comparator.comparing(ProductSummaryDTO::getPopularityScore).reversed());
-			break;
-		case "whats_new":
-			list.sort(Comparator
-					.comparing(ProductSummaryDTO::getAddedDate, Comparator.nullsLast(Comparator.naturalOrder()))
-					.reversed());
-			break;
-		case "discount": // Better Discount
-			list.sort(Comparator.comparing(ProductSummaryDTO::getDiscount).reversed());
-			break;
-		case "price_desc": // Price: High to Low
-			list.sort(Comparator.comparing(ProductSummaryDTO::getPrice).reversed());
-			break;
-		case "price_asc": // Price: Low to High
-			list.sort(Comparator.comparing(ProductSummaryDTO::getPrice));
-			break;
-		case "rating": // Customer Rating
-			list.sort(Comparator.comparing(ProductSummaryDTO::getRating).reversed());
-			break;
-		default:
-			// "recommended" or unrecognized fallback
-			break;
+	private List<String> nullIfEmpty(List<String> list) {
+		if (list == null || list.isEmpty()) {
+			return null;
 		}
 		return list;
 	}

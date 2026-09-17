@@ -6,47 +6,47 @@ import com.astravastra.catalog_service.dto.CategoryDto;
 import com.astravastra.catalog_service.dto.ResponseDto;
 import com.astravastra.catalog_service.dto.ShopByCategory;
 import com.astravastra.catalog_service.dto.SubCategoryDto;
-import com.astravastra.catalog_service.entity.NavigationMenu;
-import com.astravastra.catalog_service.repository.NavigationMenuRepository;
+import com.astravastra.catalog_service.entity.Category;
+import com.astravastra.catalog_service.repository.CategoryRepository;
 
 import java.util.*;
 
 @Service
 public class CategoryService {
 
-	private final NavigationMenuRepository menuRepository;
+	private final CategoryRepository categoryRepository;
 
-	public CategoryService(NavigationMenuRepository menuRepository) {
-		this.menuRepository = menuRepository;
-	}
+	public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
 
-	public ResponseDto shopByCategory(long categoryId) {
-		List<NavigationMenu> byParentId = menuRepository.findByParentId(categoryId);
+	public ResponseDto shopByCategory(long departmentId) {
+		List<Category> allCategories = categoryRepository.findAllCtegoriesByDeptId(departmentId);
 
 		ResponseDto response = new ResponseDto();
 		ShopByCategory shopByCategory = new ShopByCategory();
 		List<CategoryDto> categoryList = new ArrayList<>();
 		List<SubCategoryDto> subCategoryList = new ArrayList<>();
 
-		for (NavigationMenu category : byParentId) {
+		for (Category category : allCategories) {
 
 			CategoryDto cat = new CategoryDto();
 
 			cat.setId(category.getId());
-			cat.setName(category.getLabel());
+			cat.setName(category.getName());
 			cat.setPath(category.getSlug());
 			cat.setImage(category.getImage());
 
 			categoryList.add(cat);
+			
+			List<Category> allSubCategories = categoryRepository.findAllSubCtegoriesByParentId(category.getId());
 
-			List<NavigationMenu> byParentId2 = menuRepository.findByParentId(category.getId());
-
-			for (NavigationMenu subCategory : byParentId2) {
+			for (Category subCategory : allSubCategories) {
 
 				SubCategoryDto sCat = new SubCategoryDto();
 
 				sCat.setId(subCategory.getId());
-				sCat.setName(subCategory.getLabel());
+				sCat.setName(subCategory.getName());
 				sCat.setPath(subCategory.getSlug());
 				sCat.setImage(subCategory.getImage());
 

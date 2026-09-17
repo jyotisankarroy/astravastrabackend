@@ -1,13 +1,18 @@
 package com.astravastra.catalog_service.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-public class ProductSummaryDTO {
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductResponse {
 	
     private Long productId;
     private String name;
@@ -16,9 +21,9 @@ public class ProductSummaryDTO {
     private List<String> images;
     private Long popularityScore;
     private Double rating;
-    private Long count;
+    private Integer count;
     private Double discount;
-    private String addedDate;
+    private LocalDateTime addedDate;
     private List<String> availableSizes;
     private String brand;
     

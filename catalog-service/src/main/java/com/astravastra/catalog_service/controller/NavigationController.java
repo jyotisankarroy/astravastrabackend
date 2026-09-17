@@ -5,9 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.astravastra.catalog_service.dto.ResponseDto;
 import com.astravastra.catalog_service.service.MegaMenuService;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/catalog")
@@ -20,10 +19,10 @@ public class NavigationController {
     }
 
     @GetMapping("/menu")
-    public ResponseEntity<Map<String, Object>> getMegaMenu() {
+    public ResponseEntity<ResponseDto> getMegaMenu() {
     	
-        Map<String, Object> response = megaMenuService.getMegaMenuTree();
+        ResponseDto navigationMenu = megaMenuService.getNavigationMenu();
         
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(navigationMenu);
     }
 }
