@@ -60,9 +60,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
 	List<String> findSizesByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
-	@Query(value = "SELECT MIN(pv.price) FROM product_variants pv JOIN products p on p.id = pv.product_id "
-			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
-	Double findMinPrice(@Param("categoryIds") List<Long> categoryIds);
+//	@Query(value = "SELECT MIN(pv.price) FROM product_variants pv JOIN products p on p.id = pv.product_id "
+//			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
+//	Double findMinPrice(@Param("categoryIds") List<Long> categoryIds);
 
 	@Query(value = "SELECT MAX(pv.price) FROM product_variants pv JOIN products p on p.id = pv.product_id "
 			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)

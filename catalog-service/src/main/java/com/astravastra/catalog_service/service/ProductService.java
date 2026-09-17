@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.astravastra.catalog_service.dto.BreadcrumbResponse;
 import com.astravastra.catalog_service.dto.CategoryFilter;
 import com.astravastra.catalog_service.dto.FilterOption;
+import com.astravastra.catalog_service.dto.PriceFilter;
 import com.astravastra.catalog_service.dto.ProcuctFilters;
 import com.astravastra.catalog_service.dto.ProductFilterRequest;
 import com.astravastra.catalog_service.dto.ProductListingResponse;
@@ -21,7 +22,6 @@ import com.astravastra.catalog_service.repository.ProductRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,6 +65,13 @@ public class ProductService {
 			sort = "recommended";
 		}
 
+		System.out.println("minPrice = " + filterRequest.getMinPrice());
+		System.out.println("maxPrice = " + filterRequest.getMaxPrice());
+		System.out.println("minPrice class = "
+				+ (filterRequest.getMinPrice() != null ? filterRequest.getMinPrice().getClass() : null));
+		System.out.println("maxPrice class = "
+				+ (filterRequest.getMaxPrice() != null ? filterRequest.getMaxPrice().getClass() : null));
+
 		// get filtered products
 		List<Product> products = productRepository.findFilteredProducts(categoryIds, brands, brandsEnabled,
 				filterRequest.getGender(), colors, colorsEnabled, sizes, sizesEnabled, filterRequest.getMinPrice(),
@@ -90,17 +97,18 @@ public class ProductService {
 
 		filters.setSizes(getSizeFilters(categoryIds, filterRequest));
 
-		filters.setMinPrice(productRepository.findMinPrice(categoryIds));
+		PriceFilter priceFilters = getPriceFilters(categoryIds, filterRequest);
+		filters.setMinPrice(priceFilters.getMinPrice());
 
-		filters.setMaxPrice(productRepository.findMaxPrice(categoryIds));
+		filters.setMaxPrice(priceFilters.getMaxPrice());
 
 		filters.setDiscountRanges(getDiscountRanges(filterRequest));
 
 		response.setFilters(filters);
 
 		// product response
-		response.setData(
-				products.stream().map(product -> convertToProductResponse(product, filterRequest.getSizes())).toList());
+		response.setData(products.stream().map(product -> convertToProductResponse(product, filterRequest.getSizes(),
+				filterRequest.getMinPrice(), filterRequest.getMaxPrice())).toList());
 
 		response.setStatus(true);
 
@@ -129,7 +137,7 @@ public class ProductService {
 
 		for (Category category : categories) {
 			Long countProductsByCategoryId = productRepository.countProductsByCategoryId(category.getId());
-			
+
 			CategoryFilter filter = new CategoryFilter();
 
 			filter.setId(category.getId().intValue());
@@ -207,6 +215,27 @@ public class ProductService {
 		return filters;
 	}
 
+	private PriceFilter getPriceFilters(List<Long> categoryIds, ProductFilterRequest request) {
+
+		Double minPrice = null;
+		Double maxPrice = null;
+
+		PriceFilter filter = new PriceFilter();
+
+		if (request.getMinPrice() == null && request.getMinPrice() == null) {
+			minPrice = 100.0;
+			maxPrice = productRepository.findMaxPrice(categoryIds);
+
+			filter.setMinPrice(minPrice);
+			filter.setMaxPrice(maxPrice);
+		} else {
+			filter.setMinPrice(request.getMinPrice());
+			filter.setMaxPrice(request.getMaxPrice());
+		}
+
+		return filter;
+	}
+
 	private List<FilterOption> getDiscountRanges(ProductFilterRequest request) {
 
 		List<FilterOption> ranges = new ArrayList<>();
@@ -279,7 +308,8 @@ public class ProductService {
 		return breadcrumbs;
 	}
 
-	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes) {
+	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes, Double minPrice,
+			Double maxPrice) {
 
 		ProductResponse response = new ProductResponse();
 
@@ -305,38 +335,31 @@ public class ProductService {
 					.filter(Objects::nonNull).distinct()
 					.filter(size -> selectedSizes == null || selectedSizes.isEmpty() || selectedSizes.contains(size))
 					.toList());
-			
+
 			// Images
 			response.setImages(product.getVariants().stream().filter(v -> v.getImages() != null)
-	                .flatMap(v -> v.getImages().stream())
-	                .map(ProductImage::getImageUrl)
-	                .filter(Objects::nonNull)
-	                .distinct()
-	                .toList());
+					.flatMap(v -> v.getImages().stream()).map(ProductImage::getImageUrl).filter(Objects::nonNull)
+					.distinct().toList());
 
 			// Price
 			ProductVariant variant = product.getVariants().stream().filter(v -> v.getPrice() != null)
-					.min(Comparator.comparing(ProductVariant::getPrice)).orElse(null);
-			
+					.filter(v -> minPrice == null || v.getPrice() >= minPrice)
+					.filter(v -> maxPrice == null || v.getPrice() <= maxPrice).findFirst().orElse(null);
+
 			if (variant != null) {
 
-			    Integer discountPercentage = product.getDiscountPercentage();
-			    double discount = (discountPercentage != null) ? discountPercentage.doubleValue() : 0.0;
-			    double discountedPrice = variant.getPrice() * (1.0 - (discount / 100.0));
+				double price = variant.getPrice();
 
-			    response.setPrice(variant.getPrice());
-			    response.setOfferPrice(discountedPrice);
-			    response.setDiscount(discount);
+				Integer discountPercentage = product.getDiscountPercentage();
+
+				double discount = discountPercentage != null ? discountPercentage.doubleValue() : 0.0;
+
+				double discountedPrice = price * (1.0 - (discount / 100.0));
+
+				response.setPrice(price);
+				response.setOfferPrice(discountedPrice);
+				response.setDiscount(discount);
 			}
-			
-			// Quantity
-			Integer totalStock = product.getVariants().stream()
-			        .map(ProductVariant::getStockQuantity)
-			        .filter(Objects::nonNull)
-			        .mapToInt(Integer::intValue)
-			        .sum();
-
-			response.setCount(totalStock);
 
 		} else {
 
@@ -349,6 +372,7 @@ public class ProductService {
 		// These fields are not present in Product entity
 		response.setPopularityScore(null);
 		response.setRating(null);
+		response.setCount(0);
 
 		return response;
 	}
