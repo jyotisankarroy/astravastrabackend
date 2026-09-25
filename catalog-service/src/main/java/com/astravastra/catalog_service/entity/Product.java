@@ -17,6 +17,7 @@ import lombok.Data;
 @Table(name = "products")
 @Data
 public class Product {
+	
 	@Id
 	private Long id;
 

@@ -18,4 +18,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 	@Query(value = "SELECT * FROM categories WHERE parent_id =:parentId ORDER BY sort_order", nativeQuery = true)
 	List<Category> findAllSubCtegoriesByParentId(@Param("parentId") Long parentId);
 	
+	@Query(value = "SELECT * FROM categories WHERE parent_id IN (SELECT id FROM categories WHERE parent_id =:parentId)", nativeQuery = true)
+	List<Category> findFinalSubCtegoriesByParentId(@Param("parentId") Long parentId);
+	
+	@Query(value = "SELECT id FROM categories WHERE parent_id IS NULL AND is_active = 1 ORDER BY sort_order", nativeQuery = true)
+	List<Long> findMainCategories();
+	
 }

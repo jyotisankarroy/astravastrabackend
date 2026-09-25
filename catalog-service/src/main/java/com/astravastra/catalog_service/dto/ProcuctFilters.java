@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProcuctFilters {
 	
+	private List<GenderFilter> gender;
+	
 	private List<CategoryFilter> categories;
 	
 	private List<CategoryFilter> brands;

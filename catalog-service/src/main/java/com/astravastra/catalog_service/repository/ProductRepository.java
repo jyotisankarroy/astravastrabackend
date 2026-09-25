@@ -14,7 +14,7 @@ import com.astravastra.catalog_service.entity.Product;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	@Query("""
-		    SELECT DISTINCT p
+		    SELECT p
 		    FROM Product p
 		    LEFT JOIN p.brand b
 		    LEFT JOIN p.variants v
@@ -27,7 +27,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		      AND (:minPrice IS NULL OR v.price >= :minPrice)
 		      AND (:maxPrice IS NULL OR v.price <= :maxPrice)
 		      AND (:minDiscount IS NULL OR p.discountPercentage >= :minDiscount)
-		    ORDER BY p.id DESC LIMIT :limit OFFSET :offset
+		      GROUP BY p
+		      ORDER BY
+			  CASE WHEN :sort = 'price_asc' THEN MIN(v.price) END ASC,
+			  CASE WHEN :sort = 'price_desc' THEN MIN(v.price) END DESC,
+			  CASE WHEN :sort = 'discount' THEN p.discountPercentage END DESC,
+			  CASE WHEN :sort = 'whats_new' THEN p.addedDate END DESC,
+		      p.id DESC LIMIT :limit OFFSET :offset
 		    """)
 		List<Product> findFilteredProducts(
 		        @Param("categoryIds") List<Long> categoryIds,
@@ -41,6 +47,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		        @Param("minPrice") Double minPrice,
 		        @Param("maxPrice") Double maxPrice,
 		        @Param("minDiscount") Integer minDiscount,
+		        @Param("sort") String sort,
 		        @Param("offset") int offset,
 		        @Param("limit") int limit
 		);

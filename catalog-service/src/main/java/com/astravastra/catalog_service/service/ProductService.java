@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.astravastra.catalog_service.dto.BreadcrumbResponse;
 import com.astravastra.catalog_service.dto.CategoryFilter;
 import com.astravastra.catalog_service.dto.FilterOption;
+import com.astravastra.catalog_service.dto.GenderFilter;
 import com.astravastra.catalog_service.dto.PriceFilter;
 import com.astravastra.catalog_service.dto.ProcuctFilters;
 import com.astravastra.catalog_service.dto.ProductFilterRequest;
@@ -14,14 +15,17 @@ import com.astravastra.catalog_service.dto.ProductMetadata;
 import com.astravastra.catalog_service.dto.ProductResponse;
 import com.astravastra.catalog_service.entity.Brand;
 import com.astravastra.catalog_service.entity.Category;
+import com.astravastra.catalog_service.entity.Gender;
 import com.astravastra.catalog_service.entity.Product;
 import com.astravastra.catalog_service.entity.ProductImage;
 import com.astravastra.catalog_service.entity.ProductVariant;
 import com.astravastra.catalog_service.repository.CategoryRepository;
+import com.astravastra.catalog_service.repository.GenderRepository;
 import com.astravastra.catalog_service.repository.ProductRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,10 +34,12 @@ public class ProductService {
 
 	private final ProductRepository productRepository;
 	private final CategoryRepository categoryRepository;
+	private final GenderRepository genderRepository;
 
-	public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+	public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, GenderRepository genderRepository) {
 		this.productRepository = productRepository;
 		this.categoryRepository = categoryRepository;
+		this.genderRepository = genderRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -59,23 +65,17 @@ public class ProductService {
 		boolean colorsEnabled = colors != null && !colors.isEmpty();
 		boolean sizesEnabled = sizes != null && !sizes.isEmpty();
 
+		// sorting
 		String sort = filterRequest.getSort();
 
 		if (sort == null || sort.isBlank()) {
-			sort = "recommended";
+			sort = "whats_new";
 		}
-
-		System.out.println("minPrice = " + filterRequest.getMinPrice());
-		System.out.println("maxPrice = " + filterRequest.getMaxPrice());
-		System.out.println("minPrice class = "
-				+ (filterRequest.getMinPrice() != null ? filterRequest.getMinPrice().getClass() : null));
-		System.out.println("maxPrice class = "
-				+ (filterRequest.getMaxPrice() != null ? filterRequest.getMaxPrice().getClass() : null));
 
 		// get filtered products
 		List<Product> products = productRepository.findFilteredProducts(categoryIds, brands, brandsEnabled,
 				filterRequest.getGender(), colors, colorsEnabled, sizes, sizesEnabled, filterRequest.getMinPrice(),
-				filterRequest.getMaxPrice(), filterRequest.getDiscount(), offset, limit);
+				filterRequest.getMaxPrice(), filterRequest.getDiscount(), sort, offset, limit);
 
 		// total count
 		long totalItems = productRepository.countProductsByCategoryIds(categoryIds);
@@ -88,6 +88,8 @@ public class ProductService {
 
 		// filters
 		ProcuctFilters filters = new ProcuctFilters();
+		
+		filters.setGender(getGenderFilters(categoryId, filterRequest));
 
 		filters.setCategories(getCategoryFilters(categoryId, filterRequest));
 
@@ -117,19 +119,62 @@ public class ProductService {
 	}
 
 	private List<Long> getCategoryIds(Long categoryId) {
-
-		List<Category> subCategories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
-
+		
+		List<Category> subCategories = null;
+		
+		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
+		
+		if (mainCategoryIds.contains(categoryId)) {
+		    subCategories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+		} else {
+			subCategories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+		}
+		
 		if (subCategories.isEmpty()) {
 			return List.of(categoryId);
 		}
 
 		return subCategories.stream().map(Category::getId).toList();
 	}
+	
+	private List<GenderFilter> getGenderFilters(Long categoryId, ProductFilterRequest filterRequest) {
+		
+		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
+		
+		String gender = filterRequest.getGender();
+		
+		List<GenderFilter> filters = new ArrayList<>();
+		
+		if (mainCategoryIds.contains(categoryId)) {
+			List<Gender> allGender = genderRepository.findAllGender();
+			
+			for (Gender g : allGender) {
+				GenderFilter filter = new GenderFilter();
+				filter.setId(g.getId());
+				filter.setName(g.getName());
+				filter.setChecked(gender != null && gender.contains(g.getName()));
+				filters.add(filter);
+			}
+			
+		} else {
+			return null;
+		}
+		
+		return filters;
+		
+	}
 
 	private List<CategoryFilter> getCategoryFilters(Long categoryId, ProductFilterRequest request) {
-
-		List<Category> categories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+		
+		List<Category> categories = null;
+		
+		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
+		
+		if (mainCategoryIds.contains(categoryId)) {
+			categories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+		} else {
+			categories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+		}
 
 		List<Long> selectdCategoryIds = request.getCategoryIds();
 
@@ -141,7 +186,7 @@ public class ProductService {
 			CategoryFilter filter = new CategoryFilter();
 
 			filter.setId(category.getId().intValue());
-			filter.setName(category.getName());
+			filter.setName(category.getMenuName());
 			filter.setChecked(selectdCategoryIds != null && selectdCategoryIds.contains(category.getId()));
 			filter.setCount(countProductsByCategoryId);
 			filters.add(filter);
@@ -344,7 +389,8 @@ public class ProductService {
 			// Price
 			ProductVariant variant = product.getVariants().stream().filter(v -> v.getPrice() != null)
 					.filter(v -> minPrice == null || v.getPrice() >= minPrice)
-					.filter(v -> maxPrice == null || v.getPrice() <= maxPrice).findFirst().orElse(null);
+					.filter(v -> maxPrice == null || v.getPrice() <= maxPrice)
+					.min(Comparator.comparing(ProductVariant::getPrice)).orElse(null);
 
 			if (variant != null) {
 
