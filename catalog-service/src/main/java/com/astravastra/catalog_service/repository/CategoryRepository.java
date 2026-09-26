@@ -24,4 +24,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 	@Query(value = "SELECT id FROM categories WHERE parent_id IS NULL AND is_active = 1 ORDER BY sort_order", nativeQuery = true)
 	List<Long> findMainCategories();
 	
+	@Query(value = "SELECT * FROM categories "
+			+ "WHERE parent_id IN (select c.id from categories c "
+			+ "left join category_gender cg on cg.category_id = c.id "
+			+ "where cg.gender_id =:genderId and parent_id =:parentId and cg.is_active = 1)", nativeQuery = true)
+	List<Category> findAllCategoryByGender(@Param("genderId") Long genderId, @Param("parentId") Long parentId);
+	
 }

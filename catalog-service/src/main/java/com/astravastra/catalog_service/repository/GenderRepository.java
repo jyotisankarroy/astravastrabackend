@@ -11,7 +11,7 @@ import com.astravastra.catalog_service.entity.Gender;
 @Repository
 public interface GenderRepository extends JpaRepository<Gender, Long> {
 
-	@Query(value = "select * from genders where is_active = 1", nativeQuery = true)
+	@Query(value = "select * from genders where is_active = 1 order by id", nativeQuery = true)
 	List<Gender> findAllGender();
 	
 }

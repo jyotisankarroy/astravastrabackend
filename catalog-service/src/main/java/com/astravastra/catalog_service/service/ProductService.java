@@ -139,7 +139,14 @@ public class ProductService {
 	
 	private List<GenderFilter> getGenderFilters(Long categoryId, ProductFilterRequest filterRequest) {
 		
-		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
+		List<Long> mainCategoryIds;
+		
+		if (categoryId == 224 || categoryId == 230 || categoryId == 233 || categoryId == 236) {
+			mainCategoryIds = new ArrayList<>();
+		    mainCategoryIds.add(categoryId);
+		} else {
+			mainCategoryIds = categoryRepository.findMainCategories();
+		}
 		
 		String gender = filterRequest.getGender();
 		
@@ -147,6 +154,11 @@ public class ProductService {
 		
 		if (mainCategoryIds.contains(categoryId)) {
 			List<Gender> allGender = genderRepository.findAllGender();
+			
+			if (categoryId == 224 || categoryId == 230 || categoryId == 233 || categoryId == 236) {
+			        allGender.remove(0);
+			        allGender.remove(0);
+			}
 			
 			for (Gender g : allGender) {
 				GenderFilter filter = new GenderFilter();
@@ -171,7 +183,22 @@ public class ProductService {
 		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
 		
 		if (mainCategoryIds.contains(categoryId)) {
-			categories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+			
+			if (request.getGender() != null) {
+				
+				if (request.getGender().equalsIgnoreCase("Men")) {
+					categories = categoryRepository.findAllCategoryByGender(1l, categoryId);
+				} else if (request.getGender().equalsIgnoreCase("Women")) {
+					categories = categoryRepository.findAllCategoryByGender(2l, categoryId);
+				} else if (request.getGender().equalsIgnoreCase("Boys")) {
+					categories = categoryRepository.findAllCategoryByGender(3l, categoryId);
+				} else {
+					categories = categoryRepository.findAllCategoryByGender(4l, categoryId);
+				}
+			} else { // Example -> Clothing, Accesorries
+				categories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+			}
+			
 		} else {
 			categories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
 		}
