@@ -30,9 +30,15 @@ public class ProductVariant {
     private String color;
 
     private Double price;
+    
+    @Column(name = "offer_price")
+    private Double offerPrice;
 
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
+    
+    @Column(name = "is_active")
+    private Boolean active;
 
     @OneToMany(mappedBy = "variant", fetch = FetchType.LAZY)
     private List<ProductImage> images;

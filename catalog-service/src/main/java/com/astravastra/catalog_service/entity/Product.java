@@ -51,6 +51,9 @@ public class Product {
 	
 	@Column(name = "updated_at")
 	private LocalDateTime updatedDate;
+	
+	@Column(name = "seller_id")
+	private Long sellerId;
 
 	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
 	private List<ProductVariant> variants;
