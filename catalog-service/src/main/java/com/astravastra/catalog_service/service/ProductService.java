@@ -406,6 +406,95 @@ public class ProductService {
 
 		return breadcrumbs;
 	}
+	
+	private String buildProductUrl(Product product) {
+
+	    List<String> pathSegments = new ArrayList<>();
+
+	    // Gender
+	    String gender = product.getGender();
+
+	    if (gender != null && !gender.isBlank()) {
+	        pathSegments.add(slugify(gender));
+	    }
+
+	    // Category hierarchy
+	    Long categoryId = product.getCategoryId();
+
+	    if (categoryId != null) {
+
+	        List<Category> hierarchy = new ArrayList<>();
+
+	        Category current = categoryRepository.findById(categoryId)
+	                .orElse(null);
+
+	        while (current != null) {
+
+	            hierarchy.add(current);
+
+	            if (current.getParentId() == null) {
+	                break;
+	            }
+
+	            current = categoryRepository
+	                    .findById(current.getParentId())
+	                    .orElse(null);
+	        }
+
+	        // Root to leaf
+	        Collections.reverse(hierarchy);
+
+	        for (Category category : hierarchy) {
+
+	            String categoryName = category.getMenuName();
+
+	            if (categoryName == null || categoryName.isBlank()) {
+	                categoryName = category.getName();
+	            }
+
+	            String slug = slugify(categoryName);
+
+	            // Skip generic root categories such as Clothing
+	            if (slug.equals("clothing")) {
+	                continue;
+	            }
+
+	            // Remove the gender prefix from category names,
+	            // e.g. "men-topwear" becomes "topwear".
+	            String genderPrefix = slugify(gender) + "-";
+
+	            if (!genderPrefix.equals("-")
+	                    && slug.startsWith(genderPrefix)) {
+	                slug = slug.substring(genderPrefix.length());
+	            }
+
+	            if (!slug.isBlank()
+	                    && !pathSegments.contains(slug)) {
+	                pathSegments.add(slug);
+	            }
+	        }
+	    }
+
+	    // 3. Product slug
+	    pathSegments.add(slugify(product.getName()));
+
+	    // 4. Product ID and buy suffix
+	    pathSegments.add(String.valueOf(product.getId()));
+	    pathSegments.add("buy");
+
+	    return String.join("/", pathSegments);
+	}
+	
+	private String slugify(String value) {
+	    if (value == null || value.isBlank()) {
+	        return "";
+	    }
+
+	    return value.toLowerCase()
+	            .trim()
+	            .replaceAll("[^a-z0-9]+", "-")
+	            .replaceAll("^-|-$", "");
+	}
 
 	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes, Double minPrice,
 			Double maxPrice) {
@@ -415,6 +504,8 @@ public class ProductService {
 		// Product basic information
 		response.setProductId(product.getId());
 		response.setName(product.getName());
+		// Generate product URL
+		response.setProductUrl(buildProductUrl(product));
 		response.setAddedDate(product.getAddedDate());
 
 //		// Discount

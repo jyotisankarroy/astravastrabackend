@@ -26,5 +26,6 @@ public class ProductResponse {
     private LocalDateTime addedDate;
     private List<String> availableSizes;
     private String brand;
+    private String productUrl;
     
 }
