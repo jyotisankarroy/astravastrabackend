@@ -609,7 +609,7 @@ public class ProductService {
 		data.setImages(images.stream().map(ProductImage::getImageUrl).collect(Collectors.toList()));
 		data.setRating(buildRating(reviews));
 		data.setPrice(buildPrice(product.getVariants()));
-		data.setColor(buildColors(colours, images, productId));
+		data.setColor(buildColors(colours, productId));
 		data.setSize(buildSizes(product, product.getVariants()));
 		data.setSellerName(seller.getSellerName());
 
@@ -723,14 +723,25 @@ public class ProductService {
 		return dto;
 	}
 
-	private List<ColorDto> buildColors(List<Product> colours, List<ProductImage> images, Long productId) {
+	private List<ColorDto> buildColors(List<Product> colours, Long productId) {
 
-		String defaultImage = images.isEmpty() ? null : images.get(0).getImageUrl();
+		String defaultImage = null;
 
 		Map<String, ColorDto> colors = new LinkedHashMap<>();
 
 		for (Product p : colours) {
-
+			
+			List<ProductImage> images = p.getImages();
+			
+			for (ProductImage pi : images) {
+				
+				if (pi.getIsPrimary()) {
+					defaultImage = pi.getImageUrl();
+					continue;
+				}
+				
+			}
+			
 			String colorName = p.getColour();
 
 			Long id = p.getId();
