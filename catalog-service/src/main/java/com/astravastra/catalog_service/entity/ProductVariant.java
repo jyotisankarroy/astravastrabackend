@@ -1,14 +1,11 @@
 package com.astravastra.catalog_service.entity;
 
-import java.util.List;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -27,8 +24,6 @@ public class ProductVariant {
 
     private String size;
 
-    private String color;
-
     private Double price;
     
     @Column(name = "offer_price")
@@ -39,8 +34,5 @@ public class ProductVariant {
     
     @Column(name = "is_active")
     private Boolean active;
-
-    @OneToMany(mappedBy = "variant", fetch = FetchType.LAZY)
-    private List<ProductImage> images;
     
 }

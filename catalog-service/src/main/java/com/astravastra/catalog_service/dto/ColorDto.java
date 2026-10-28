@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ColorDto {
+	private Long id;
     private String name;
     private Boolean checked;
     private String image;

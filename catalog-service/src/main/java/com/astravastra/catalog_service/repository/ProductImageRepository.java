@@ -9,7 +9,7 @@ import com.astravastra.catalog_service.entity.ProductImage;
 
 @Repository
 public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
-
-	List<ProductImage> findByVariant_Product_IdOrderByDisplayOrderAsc(Long productId);
+	
+	List<ProductImage> findByProduct_IdOrderByDisplayOrderAsc(Long productId);
 
 }

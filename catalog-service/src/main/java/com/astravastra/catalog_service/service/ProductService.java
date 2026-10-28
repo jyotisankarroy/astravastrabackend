@@ -42,7 +42,6 @@ import com.astravastra.catalog_service.repository.ProductImageRepository;
 import com.astravastra.catalog_service.repository.ProductRepository;
 import com.astravastra.catalog_service.repository.ProductReviewRepository;
 import com.astravastra.catalog_service.repository.ProductSellerRepository;
-import com.astravastra.catalog_service.repository.ProductVariantRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -64,7 +63,6 @@ public class ProductService {
 	private final CategoryRepository categoryRepository;
 	private final GenderRepository genderRepository;
 	private final ProductImageRepository productImageRepository;
-	private final ProductVariantRepository productVariantRepository;
 	private final ProductAttributeRepository productAttributeRepository;
 	private final ProductReviewRepository productReviewRepository;
 	private final ProductSellerRepository productSellerRepository;
@@ -406,94 +404,86 @@ public class ProductService {
 
 		return breadcrumbs;
 	}
-	
+
 	private String buildProductUrl(Product product) {
 
-	    List<String> pathSegments = new ArrayList<>();
+		List<String> pathSegments = new ArrayList<>();
 
-	    // Gender
-	    String gender = product.getGender();
+		// Gender
+		String gender = product.getGender();
 
-	    if (gender != null && !gender.isBlank()) {
-	        pathSegments.add(slugify(gender));
-	    }
+		if (gender != null && !gender.isBlank()) {
+			pathSegments.add(slugify(gender));
+		}
 
-	    // Category hierarchy
-	    Long categoryId = product.getCategoryId();
+		// Category hierarchy
+		Long categoryId = product.getCategoryId();
 
-	    if (categoryId != null) {
+		if (categoryId != null) {
 
-	        List<Category> hierarchy = new ArrayList<>();
+			List<Category> hierarchy = new ArrayList<>();
 
-	        Category current = categoryRepository.findById(categoryId)
-	                .orElse(null);
+			Category current = categoryRepository.findById(categoryId).orElse(null);
 
-	        while (current != null) {
+			while (current != null) {
 
-	            hierarchy.add(current);
+				hierarchy.add(current);
 
-	            if (current.getParentId() == null) {
-	                break;
-	            }
+				if (current.getParentId() == null) {
+					break;
+				}
 
-	            current = categoryRepository
-	                    .findById(current.getParentId())
-	                    .orElse(null);
-	        }
+				current = categoryRepository.findById(current.getParentId()).orElse(null);
+			}
 
-	        // Root to leaf
-	        Collections.reverse(hierarchy);
+			// Root to leaf
+			Collections.reverse(hierarchy);
 
-	        for (Category category : hierarchy) {
+			for (Category category : hierarchy) {
 
-	            String categoryName = category.getMenuName();
+				String categoryName = category.getMenuName();
 
-	            if (categoryName == null || categoryName.isBlank()) {
-	                categoryName = category.getName();
-	            }
+				if (categoryName == null || categoryName.isBlank()) {
+					categoryName = category.getName();
+				}
 
-	            String slug = slugify(categoryName);
+				String slug = slugify(categoryName);
 
-	            // Skip generic root categories such as Clothing
-	            if (slug.equals("clothing")) {
-	                continue;
-	            }
+				// Skip generic root categories such as Clothing
+				if (slug.equals("clothing")) {
+					continue;
+				}
 
-	            // Remove the gender prefix from category names,
-	            // e.g. "men-topwear" becomes "topwear".
-	            String genderPrefix = slugify(gender) + "-";
+				// Remove the gender prefix from category names,
+				// e.g. "men-topwear" becomes "topwear".
+				String genderPrefix = slugify(gender) + "-";
 
-	            if (!genderPrefix.equals("-")
-	                    && slug.startsWith(genderPrefix)) {
-	                slug = slug.substring(genderPrefix.length());
-	            }
+				if (!genderPrefix.equals("-") && slug.startsWith(genderPrefix)) {
+					slug = slug.substring(genderPrefix.length());
+				}
 
-	            if (!slug.isBlank()
-	                    && !pathSegments.contains(slug)) {
-	                pathSegments.add(slug);
-	            }
-	        }
-	    }
+				if (!slug.isBlank() && !pathSegments.contains(slug)) {
+					pathSegments.add(slug);
+				}
+			}
+		}
 
-	    // 3. Product slug
-	    pathSegments.add(slugify(product.getName()));
+		// Product slug
+		pathSegments.add(slugify(product.getName()));
 
-	    // 4. Product ID and buy suffix
-	    pathSegments.add(String.valueOf(product.getId()));
-	    pathSegments.add("buy");
+		// Product ID and buy suffix
+		pathSegments.add(String.valueOf(product.getId()));
+		pathSegments.add("buy");
 
-	    return String.join("/", pathSegments);
+		return String.join("/", pathSegments);
 	}
-	
-	private String slugify(String value) {
-	    if (value == null || value.isBlank()) {
-	        return "";
-	    }
 
-	    return value.toLowerCase()
-	            .trim()
-	            .replaceAll("[^a-z0-9]+", "-")
-	            .replaceAll("^-|-$", "");
+	private String slugify(String value) {
+		if (value == null || value.isBlank()) {
+			return "";
+		}
+
+		return value.toLowerCase().trim().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
 	}
 
 	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes, Double minPrice,
@@ -501,21 +491,20 @@ public class ProductService {
 
 		ProductResponse response = new ProductResponse();
 
-		// Product basic information
 		response.setProductId(product.getId());
 		response.setName(product.getName());
 		// Generate product URL
 		response.setProductUrl(buildProductUrl(product));
 		response.setAddedDate(product.getAddedDate());
 
-//		// Discount
-//		response.setDiscount(
-//				product.getDiscountPercentage() != null ? product.getDiscountPercentage().doubleValue() : 0.0);
-
 		// Brand
 		if (product.getBrand() != null) {
 			response.setBrand(product.getBrand().getName());
 		}
+
+		// Images
+		response.setImages(product.getImages().stream().map(ProductImage::getImageUrl).filter(Objects::nonNull)
+				.distinct().toList());
 
 		// Variants
 		if (product.getVariants() != null && !product.getVariants().isEmpty()) {
@@ -525,11 +514,6 @@ public class ProductService {
 					.filter(Objects::nonNull).distinct()
 					.filter(size -> selectedSizes == null || selectedSizes.isEmpty() || selectedSizes.contains(size))
 					.toList());
-
-			// Images
-			response.setImages(product.getVariants().stream().filter(v -> v.getImages() != null)
-					.flatMap(v -> v.getImages().stream()).map(ProductImage::getImageUrl).filter(Objects::nonNull)
-					.distinct().toList());
 
 			// Price
 			ProductVariant variant = product.getVariants().stream().filter(v -> v.getPrice() != null)
@@ -541,29 +525,41 @@ public class ProductService {
 
 				double price = variant.getPrice();
 
-				Integer discountPercentage = product.getDiscountPercentage();
+				double offerPrice = variant.getOfferPrice();
 
-				double discount = discountPercentage != null ? discountPercentage.doubleValue() : 0.0;
-
-				double discountedPrice = price * (1.0 - (discount / 100.0));
+				double discount = price > 0 ? ((price - offerPrice) / price) * 100.0 : 0.0;
 
 				response.setPrice(price);
-				response.setOfferPrice(discountedPrice);
-				response.setDiscount(discount);
+				response.setOfferPrice(offerPrice);
+				response.setDiscount(Math.round(discount * 100.0) / 100.0);
 			}
 
 		} else {
-
 			response.setAvailableSizes(new ArrayList<>());
 			response.setImages(new ArrayList<>());
 			response.setPrice(0.0);
 			response.setOfferPrice(0.0);
 		}
 
-		// These fields are not present in Product entity
+		if (product.getReviews() != null && !product.getReviews().isEmpty()) {
+
+			List<ProductReview> approvedReviews = product.getReviews().stream()
+					.filter(review -> Boolean.TRUE.equals(review.getIsApproved()))
+					.filter(review -> review.getRating() != null).toList();
+
+			// Average rating
+			double averageRating = approvedReviews.stream().mapToLong(ProductReview::getRating).average().orElse(0.0);
+
+			// Total rating count
+			int totalRatingCount = approvedReviews.size();
+
+			response.setRating(Math.round(averageRating * 100.0) / 100.0);
+			response.setCount(totalRatingCount);
+
+		}
+
+		// These field is not present in Product entity
 		response.setPopularityScore(null);
-		response.setRating(null);
-		response.setCount(0);
 
 		return response;
 	}
@@ -580,37 +576,49 @@ public class ProductService {
 		Product product = productRepository.findById(productId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
 
+		// start colour building
+		List<Product> colours;
+
+		colours = productRepository.findByParentId(productId);
+
+		if (colours.isEmpty()) {
+			colours = productRepository.findByParentId(product.getParentId());
+			colours.add(productRepository.findById(product.getParentId()).get());
+		}
+
+		colours.add(product);
+		// end
+
 		Category category = categoryRepository.findById(product.getCategoryId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
 		ProductSeller seller = productSellerRepository.findById(product.getSellerId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
-		List<ProductImage> images = productImageRepository.findByVariant_Product_IdOrderByDisplayOrderAsc(productId);
+		List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(productId);
 
-		List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndActiveTrue(productId);
+		List<ProductAttribute> attributes = productAttributeRepository.findByProductIdOrderByDisplayOrderAsc(
+				product.getParentId() != null ? product.getParentId() : productId);
 
-		List<ProductAttribute> attributes = productAttributeRepository.findByProductIdOrderByDisplayOrderAsc(productId);
-
-		List<ProductReview> reviews = productReviewRepository
-				.findByProductIdAndIsApprovedTrueOrderByReviewDateDesc(productId);
+		List<ProductReview> reviews = productReviewRepository.findByProductIdAndIsApprovedTrueOrderByReviewDateDesc(
+				product.getParentId() != null ? product.getParentId() : productId);
 
 		ProductDetailsData data = new ProductDetailsData();
 
 		data.setBreadcrumb(buildBreadcrumb(category));
-		data.setTitle(product.getBrand().getName());
-		data.setSummary(product.getShortDescription());
-
 		data.setImages(images.stream().map(ProductImage::getImageUrl).collect(Collectors.toList()));
-
 		data.setRating(buildRating(reviews));
-		data.setPrice(buildPrice(variants));
-		data.setColor(buildColors(variants, images));
-		data.setSize(buildSizes(product, variants));
+		data.setPrice(buildPrice(product.getVariants()));
+		data.setColor(buildColors(colours, images, productId));
+		data.setSize(buildSizes(product, product.getVariants()));
 		data.setSellerName(seller.getSellerName());
 
 		ProductInfoDto info = new ProductInfoDto();
+		info.setBrand(product.getBrand().getName());
+		info.setName(product.getName());
+		info.setSummary(product.getShortDescription());
 		info.setDescription(product.getDescription());
+		info.setProductUrl(buildProductUrl(product));
 		info.setSpecification(
 				attributes.stream().map(a -> new SpecificationDto(a.getAttributeName(), a.getAttributeValue()))
 						.collect(Collectors.toList()));
@@ -715,21 +723,25 @@ public class ProductService {
 		return dto;
 	}
 
-	private List<ColorDto> buildColors(List<ProductVariant> variants, List<ProductImage> images) {
+	private List<ColorDto> buildColors(List<Product> colours, List<ProductImage> images, Long productId) {
 
 		String defaultImage = images.isEmpty() ? null : images.get(0).getImageUrl();
 
 		Map<String, ColorDto> colors = new LinkedHashMap<>();
 
-		for (ProductVariant variant : variants) {
+		for (Product p : colours) {
 
-			String colorName = variant.getColor();
+			String colorName = p.getColour();
+
+			Long id = p.getId();
 
 			if (colorName == null) {
 				continue;
 			}
 
-			colors.putIfAbsent(colorName, new ColorDto(colorName, false, defaultImage));
+			boolean selected = Objects.equals(id, productId);
+
+			colors.putIfAbsent(colorName, new ColorDto(id, colorName, selected, defaultImage));
 		}
 
 		return new ArrayList<>(colors.values());
@@ -755,11 +767,18 @@ public class ProductService {
 			int stock = variant.getStockQuantity();
 
 			SizeOptionDto option = new SizeOptionDto();
+			option.setId(variant.getId());
 			option.setSize(entry.getKey());
+			option.setPrice(variant.getOfferPrice());
 			option.setAvailable(stock > 0);
 
-			option.setProduct_left(
-					stock > 0 ? stock + (stock == 1 ? " product left hurry" : " products left hurry") : "Out of stock");
+			if (stock <= 0) {
+				option.setProduct_left("Out of stock");
+			} else if (stock < 10) {
+				option.setProduct_left(stock + " left");
+			} else {
+				option.setProduct_left(null);
+			}
 
 			sizeList.add(option);
 		}

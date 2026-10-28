@@ -9,9 +9,7 @@ public class ProductDetailsData {
 	
     private List<BreadcrumbResponse> breadcrumb;
     
-    private String title;
-    
-    private String summary;
+    private ProductInfoDto productDetails;
     
     private List<String> images;
     
@@ -24,8 +22,6 @@ public class ProductDetailsData {
     private SizeDataDto size;
     
     private String sellerName;
-    
-    private ProductInfoDto productDetails;
     
     private List<CustomerReviewDto> customerReview;
     

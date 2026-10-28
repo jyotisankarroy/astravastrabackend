@@ -37,8 +37,8 @@ public class Product {
 	
 	private String gender;
 
-	@Column(name = "primary_colour")
-	private String primaryColour;
+	@Column(name = "colour")
+	private String colour;
 
 	@Column(name = "category_name")
 	private String categoryName;
@@ -54,9 +54,18 @@ public class Product {
 	
 	@Column(name = "seller_id")
 	private Long sellerId;
+	
+	@Column(name = "parent_id")
+	private Long parentId;
+	
+	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    private List<ProductImage> images;
 
 	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
 	private List<ProductVariant> variants;
+	
+	@OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    private List<ProductReview> reviews;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")

@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SizeOptionDto {
+	private Long id;
     private String size;
+    private Double price;
     private Boolean available;
     private String product_left;
 }

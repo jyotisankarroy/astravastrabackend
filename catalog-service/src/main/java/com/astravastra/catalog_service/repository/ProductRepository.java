@@ -20,9 +20,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		    LEFT JOIN p.variants v
 		    WHERE p.categoryId IN :categoryIds
 		      AND p.status = 'ACTIVE'
+		      AND p.parentId IS NULL
 		      AND (:gender IS NULL OR LOWER(p.gender) = LOWER(:gender))
 		      AND (:brandsEnabled = FALSE OR b.name IN :brands)
-		      AND (:colorsEnabled = FALSE OR v.color IN :colors)
+		      AND (:colorsEnabled = FALSE OR p.colour IN :colors)
 		      AND (:sizesEnabled = FALSE OR v.size IN :sizes)
 		      AND (:minPrice IS NULL OR v.price >= :minPrice)
 		      AND (:maxPrice IS NULL OR v.price <= :maxPrice)
@@ -59,8 +60,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
 	List<Brand> findBrandsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
-	@Query(value = "SELECT DISTINCT pv.color FROM product_variants pv JOIN products p on p.id = pv.product_id "
-			+ "WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
+	@Query(value = "SELECT DISTINCT p.colour FROM products p WHERE p.category_id IN :categoryIds AND p.status = 'ACTIVE'", nativeQuery = true)
 	List<String> findColorsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
 	@Query(value = "SELECT DISTINCT pv.size FROM product_variants pv JOIN products p on p.id = pv.product_id "
@@ -78,12 +78,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 	@Query(value = "SELECT COUNT(*) FROM products WHERE category_id =:categoryId AND status = 'ACTIVE'", nativeQuery = true)
 	Long countProductsByCategoryId(@Param("categoryId") Long categoryId);
 	
-	@Query(value = "SELECT COUNT(*) FROM products p "
-			+ "JOIN product_variants v ON v.product_id = p.id WHERE v.color =:color AND p.status = 'ACTIVE'", nativeQuery = true)
+	@Query(value = "SELECT COUNT(*) FROM products p WHERE p.colour =:color AND p.status = 'ACTIVE'", nativeQuery = true)
 	Long countProductsByColor(@Param("color") String color);
 	
 	@Query(value = "SELECT COUNT(*) FROM products p "
 			+ "JOIN brands b ON b.id = p.brand_id WHERE b.id =:brandId AND p.status = 'ACTIVE'", nativeQuery = true)
 	Long countProductsByBrandId(@Param("brandId") Integer brandId);
+
+	@Query(value = "SELECT * FROM products WHERE parent_id =:productId", nativeQuery = true)
+	List<Product> findByParentId(@Param("productId") Long productId);
 
 }
