@@ -35,6 +35,7 @@ import com.astravastra.catalog_service.entity.ProductImage;
 import com.astravastra.catalog_service.entity.ProductReview;
 import com.astravastra.catalog_service.entity.ProductSeller;
 import com.astravastra.catalog_service.entity.ProductVariant;
+import com.astravastra.catalog_service.entity.SizeChart;
 import com.astravastra.catalog_service.repository.CategoryRepository;
 import com.astravastra.catalog_service.repository.GenderRepository;
 import com.astravastra.catalog_service.repository.ProductAttributeRepository;
@@ -42,6 +43,7 @@ import com.astravastra.catalog_service.repository.ProductImageRepository;
 import com.astravastra.catalog_service.repository.ProductRepository;
 import com.astravastra.catalog_service.repository.ProductReviewRepository;
 import com.astravastra.catalog_service.repository.ProductSellerRepository;
+import com.astravastra.catalog_service.repository.SizeChartRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -66,6 +68,7 @@ public class ProductService {
 	private final ProductAttributeRepository productAttributeRepository;
 	private final ProductReviewRepository productReviewRepository;
 	private final ProductSellerRepository productSellerRepository;
+	private final SizeChartRepository sizeChartRepository;
 
 	@Transactional(readOnly = true)
 	public ProductListingResponse getProductsByCategory(ProductFilterRequest filterRequest, Long categoryId, int offset,
@@ -759,10 +762,12 @@ public class ProductService {
 	}
 
 	private SizeDataDto buildSizes(Product product, List<ProductVariant> variants) {
+		
+		SizeChart sizeChart = sizeChartRepository.findByProductId(product.getId());
 
 		SizeDataDto dto = new SizeDataDto();
 
-		dto.setSizeChart("https://neemans.com/cdn/shop/files/Desktop_size_chart_new.jpg?v=1785406701");
+		dto.setSizeChart(sizeChart.getSizeChart());
 
 		Map<String, ProductVariant> sizeMap = new LinkedHashMap<>();
 
