@@ -6,9 +6,6 @@ import lombok.Data;
 
 @Data
 public class ProductInfoDto {
-    private String brand;
-    private String name;
-    private String summary;
     private String description;
     private List<SpecificationDto> specification;
 }

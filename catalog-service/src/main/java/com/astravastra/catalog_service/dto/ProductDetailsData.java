@@ -9,6 +9,12 @@ public class ProductDetailsData {
 	
     private List<BreadcrumbResponse> breadcrumb;
     
+    private String brand;
+    
+    private String name;
+    
+    private String summary;
+    
     private ProductInfoDto productDetails;
     
     private List<String> images;

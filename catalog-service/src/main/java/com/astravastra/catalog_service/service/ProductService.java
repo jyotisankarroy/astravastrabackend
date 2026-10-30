@@ -615,11 +615,11 @@ public class ProductService {
 		data.setColor(buildColors(colours, productId));
 		data.setSize(buildSizes(product, product.getVariants()));
 		data.setSellerName(seller.getSellerName());
+		data.setBrand(product.getBrand().getName());
+		data.setName(product.getName());
+		data.setSummary(product.getShortDescription());
 
 		ProductInfoDto info = new ProductInfoDto();
-		info.setBrand(product.getBrand().getName());
-		info.setName(product.getName());
-		info.setSummary(product.getShortDescription());
 		info.setDescription(product.getDescription());
 		info.setSpecification(
 				attributes.stream().map(a -> new SpecificationDto(a.getAttributeName(), a.getAttributeValue()))
