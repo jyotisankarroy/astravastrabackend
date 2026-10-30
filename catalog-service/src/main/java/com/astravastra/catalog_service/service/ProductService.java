@@ -621,7 +621,6 @@ public class ProductService {
 		info.setName(product.getName());
 		info.setSummary(product.getShortDescription());
 		info.setDescription(product.getDescription());
-		info.setProductUrl(buildProductUrl(product));
 		info.setSpecification(
 				attributes.stream().map(a -> new SpecificationDto(a.getAttributeName(), a.getAttributeValue()))
 						.collect(Collectors.toList()));
@@ -754,8 +753,10 @@ public class ProductService {
 			}
 
 			boolean selected = Objects.equals(id, productId);
+			
+			String productUrl = buildProductUrl(p);
 
-			colors.putIfAbsent(colorName, new ColorDto(id, colorName, selected, defaultImage));
+			colors.putIfAbsent(colorName, new ColorDto(id, colorName, selected, defaultImage, productUrl));
 		}
 
 		return new ArrayList<>(colors.values());

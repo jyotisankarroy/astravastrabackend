@@ -12,4 +12,5 @@ public class ColorDto {
     private String name;
     private Boolean checked;
     private String image;
+    private String url;
 }
