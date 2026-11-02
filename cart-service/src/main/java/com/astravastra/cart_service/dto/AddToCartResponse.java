@@ -16,6 +16,5 @@ public class AddToCartResponse {
     private Integer quantity;
     private Double price;
     private Double offerPrice;
-    private String message;
     
 }

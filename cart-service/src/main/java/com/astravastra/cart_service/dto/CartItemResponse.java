@@ -13,7 +13,7 @@ public class CartItemResponse {
 
     private String brand;
     private String productName;
-    private String slug;
+    private String sellerName;
 
     private String size;
     private String color;
@@ -24,7 +24,7 @@ public class CartItemResponse {
 
     private Double price;
     private Double offerPrice;
-    private Double discountPercentage;
+    private Double discount;
 
     private Boolean selected;
     private Boolean inStock;

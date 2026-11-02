@@ -4,13 +4,16 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.astravastra.cart_service.dto.AddToCartResponse;
 import com.astravastra.cart_service.dto.CartItemResponse;
+import com.astravastra.cart_service.dto.CartPriceDetails;
 import com.astravastra.cart_service.dto.CartResponse;
+import com.astravastra.cart_service.dto.CartSelectionRequest;
 import com.astravastra.cart_service.dto.ResponseDto;
 import com.astravastra.cart_service.entity.CartItem;
 import com.astravastra.cart_service.entity.Product;
@@ -32,7 +35,7 @@ public class CartService {
 	private final ProductImageRepository productImageRepository;
 
 	@Transactional
-	public ResponseDto addToCart(String userEmail, Long variantId, Integer quantity) {
+	public ResponseDto addToCart(String userEmail, Long productId, Long variantId, Integer quantity) {
 
 		Users user = userRepository.findUserByEmail(userEmail);
 
@@ -77,7 +80,7 @@ public class CartService {
 		} else {
 			item = new CartItem();
 			item.setUserId(user.getId());
-			item.setProductId(variant.getProduct().getId());
+			item.setProductId(productId);
 			item.setVariantId(variant.getId());
 			item.setSelected(true);
 		}
@@ -93,46 +96,104 @@ public class CartService {
 		// Prepare response data
 		AddToCartResponse data = AddToCartResponse.builder().cartItemId(savedItem.getId())
 				.productId(variant.getProduct().getId()).variantId(variant.getId())
-				.productName(variant.getProduct().getName()).size(variant.getSize()).color(variant.getColor())
-				.quantity(savedItem.getQuantity()).price(variant.getPrice()).offerPrice(variant.getOfferPrice())
-				.message("Product added to cart successfully").build();
+				.productName(variant.getProduct().getName()).size(variant.getSize()).color(variant.getProduct().getColour())
+				.quantity(savedItem.getQuantity()).price(variant.getPrice()).offerPrice(variant.getOfferPrice()).build();
 
 		return new ResponseDto(true, "Product added to cart successfully", data);
 	}
 
-	@Transactional(readOnly = true)
-	public ResponseDto getCart(String userEmail) {
+	@Transactional
+	public ResponseDto updateCartSelection(String userEmail, List<CartSelectionRequest> request) {
+		
+		Users users = userRepository.findUserByEmail(userEmail);
 
-		Users user = userRepository.findUserByEmail(userEmail);
-
-		// Validate request
-		if (user == null) {
+		if (users == null) {
 			return new ResponseDto(false, "User not authenticated", null);
 		}
+		
+		if (!request.isEmpty()) {
+			
+			// Validate all items before updating any of them
+			List<CartItem> cartItemsToUpdate = new ArrayList<>();
 
-		List<CartItem> cartItems = cartItemRepository.findByUserId(user.getId());
+			for (CartSelectionRequest itemRequest : request) {
+
+				if (itemRequest.getCartItemId() == null || itemRequest.getSelected() == null) {
+					return new ResponseDto(false, "Cart item ID and selected status are required", null);
+				}
+
+				Optional<CartItem> optionalItem = cartItemRepository.findByIdAndUserId(itemRequest.getCartItemId(), users.getId());
+
+				if (optionalItem.isEmpty()) {
+					return new ResponseDto(false, "Cart item not found: " + itemRequest.getCartItemId(), null);
+				}
+
+				CartItem cartItem = optionalItem.get();
+				cartItem.setSelected(itemRequest.getSelected());
+
+				cartItemsToUpdate.add(cartItem);
+			}
+
+			// Persist all selection changes
+			cartItemRepository.saveAll(cartItemsToUpdate);
+			
+		}
+
+		// Return refreshed cart and recalculated price details
+		CartResponse cartResponse = getCart(users.getId());
+
+		return new ResponseDto(true, "Cart selection updated successfully", cartResponse);
+	}
+
+	public CartResponse getCart(Long userId) {
+
+		List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
 
 		List<CartItemResponse> items = new ArrayList<>();
 
 		int selectedItems = 0;
+
+		double totalMrp = 0.0;
+		double discountOnMrp = 0.0;
 		double subtotal = 0.0;
 
 		for (CartItem cartItem : cartItems) {
 
 			Long variantId = cartItem.getVariantId();
 
-			if (variantId == null) {
+			ProductVariant variant = variantRepository.findById(variantId).get();
+
+			if (variant == null || variant.getProduct() == null) {
 				continue;
 			}
 
-			ProductVariant productVarient = variantRepository.findById(variantId).get();
-			Product product = productVarient.getProduct();
+			Product product = variant.getProduct();
 
-			Integer stock = productVarient.getStockQuantity();
+			Integer quantity = cartItem.getQuantity();
+
+			if (quantity == null || quantity <= 0) {
+				continue;
+			}
+
+			Double price = variant.getPrice();
+
+			Double offerPrice = variant.getOfferPrice();
+
+			Integer stock = variant.getStockQuantity();
+
 			boolean inStock = stock != null && stock > 0;
 
-			// Fetch variant images
-			List<ProductImage> images = productImageRepository.findByVariant_IdOrderByDisplayOrderAsc(variantId);
+			boolean selected = Boolean.TRUE.equals(cartItem.getSelected());
+
+			// Calculate unit prices
+			double mrp = price != null ? price : 0.0;
+
+			double sellingPrice = offerPrice != null ? offerPrice : mrp;
+
+			double unitDiscount = Math.max(mrp - sellingPrice, 0.0);
+
+			// Calculate image
+			List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
 
 			String imageUrl = null;
 
@@ -144,40 +205,78 @@ public class CartService {
 				imageUrl = primaryImage.getImageUrl();
 			}
 
-			Double price = productVarient.getPrice();
-			Double offerPrice = productVarient.getOfferPrice();
+			// Calculate discount percentage
+			double discountPercentage = 0.0;
 
-			double effectivePrice = offerPrice != null ? offerPrice : price != null ? price : 0.0;
-
-			Double discountPercentage = 0.0;
-
-			if (price != null && price > 0 && offerPrice != null) {
-				discountPercentage = ((price - offerPrice) / price) * 100.0;
+			if (mrp > 0) {
+				discountPercentage = (unitDiscount / mrp) * 100.0;
 			}
 
-			Boolean selected = Boolean.TRUE.equals(cartItem.getSelected());
-
+			// Only selected items contribute to price
 			if (selected) {
+
 				selectedItems++;
 
 				if (inStock) {
-					subtotal += effectivePrice * cartItem.getQuantity();
+
+					totalMrp += mrp * quantity;
+
+					discountOnMrp += unitDiscount * quantity;
+
+					subtotal += sellingPrice * quantity;
 				}
 			}
 
 			CartItemResponse item = CartItemResponse.builder().cartItemId(cartItem.getId()).productId(product.getId())
-					.variantId(variantId).productName(product.getName()).slug(product.getSlug())
-					.size(productVarient.getSize()).color(productVarient.getColor()).imageUrl(imageUrl)
-					.quantity(cartItem.getQuantity()).availableStock(stock).price(price).offerPrice(offerPrice)
-					.discountPercentage(discountPercentage).selected(selected).inStock(inStock).build();
+					.variantId(variant.getId()).productName(product.getName()).brand(product.getBrand().getName())
+					.size(variant.getSize()).color(variant.getProduct().getColour()).imageUrl(imageUrl).quantity(quantity)
+					.availableStock(stock).price(price).offerPrice(offerPrice).discount(discountPercentage)
+					.selected(selected).inStock(inStock).build();
 
 			items.add(item);
 		}
 
-		CartResponse data = CartResponse.builder().items(items).totalItems(items.size()).selectedItems(selectedItems)
-				.subtotal(Math.round(subtotal * 100.0) / 100.0).build();
+		// Coupon discount
+		double couponDiscount = calculateCouponDiscount(subtotal);
 
-		return new ResponseDto(true, "Data fetched Successfully", data);
+		// Shipping charge
+		double shippingCharge = calculateShippingCharge(subtotal);
+
+		// Tax fee
+		double tax = calculateTax(subtotal);
+
+		// Price details
+		CartPriceDetails priceDetails = CartPriceDetails.builder().totalPrice(round(totalMrp))
+				.discount(round(discountOnMrp)).couponDiscount(round(couponDiscount)).tax(round(tax))
+				.shippingCharge(round(shippingCharge)).build();
+
+		CartResponse data = CartResponse.builder().items(items).totalItems(items.size()).selectedItems(selectedItems)
+				.subtotal(round(subtotal)).priceDetails(priceDetails).build();
+
+		return data;
 	}
 
+	private double calculateCouponDiscount(double subtotal) {
+
+		// Replace with actual coupon validation and calculation.
+		return 0.0;
+	}
+
+	private double calculateShippingCharge(double subtotal) {
+
+		// Replace with your shipping policy.
+		return 0.0;
+	}
+
+	private double calculateTax(double subtotal) {
+
+		// Replace with your tax policy.
+		return 0.0;
+	}
+
+	private double round(double amount) {
+
+		return Math.round(amount * 100.0) / 100.0;
+	}
+	
 }

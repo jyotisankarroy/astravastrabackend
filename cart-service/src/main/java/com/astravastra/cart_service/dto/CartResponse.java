@@ -16,4 +16,6 @@ public class CartResponse {
 
     private Double subtotal;
     
+    private CartPriceDetails priceDetails;
+    
 }
