@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.astravastra.cart_service.dto.AddToCartRequest;
 import com.astravastra.cart_service.dto.CartSelectionRequest;
+import com.astravastra.cart_service.dto.RemoveCartRequest;
 import com.astravastra.cart_service.dto.ResponseDto;
 import com.astravastra.cart_service.service.CartService;
 
@@ -25,7 +26,8 @@ public class CartController {
 	public ResponseEntity<ResponseDto> addToCart(@RequestHeader("X-Auth-User-Email") String userEmail,
 			@RequestBody AddToCartRequest request) {
 
-		ResponseDto response = cartService.addToCart(userEmail, request.getProductId(), request.getVariantId(), request.getQuantity());
+		ResponseDto response = cartService.addToCart(userEmail, request.getProductId(), request.getVariantId(),
+				request.getQuantity());
 
 		if (!response.isStatus()) {
 			return ResponseEntity.badRequest().body(response);
@@ -36,9 +38,24 @@ public class CartController {
 
 	// Fetch all items
 	@PostMapping("/items/selection")
-	public ResponseEntity<ResponseDto> getCart(@RequestHeader("X-Auth-User-Email") String userEmail, @RequestBody List<CartSelectionRequest> request) {
+	public ResponseEntity<ResponseDto> getCart(@RequestHeader("X-Auth-User-Email") String userEmail,
+			@RequestBody List<CartSelectionRequest> request) {
 
 		ResponseDto response = cartService.updateCartSelection(userEmail, request);
+
+		if (!response.isStatus()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+		}
+
+		return ResponseEntity.ok(response);
+	}
+
+	// Remove items
+	@DeleteMapping("/items/remove")
+	public ResponseEntity<ResponseDto> removeCartItems(@RequestHeader("X-Auth-User-Email") String userEmail,
+			@RequestBody List<RemoveCartRequest> request) {
+
+		ResponseDto response = cartService.removeCartItems(userEmail, request);
 
 		if (!response.isStatus()) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);

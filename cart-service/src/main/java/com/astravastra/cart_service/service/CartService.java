@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +15,9 @@ import com.astravastra.cart_service.dto.CartItemResponse;
 import com.astravastra.cart_service.dto.CartPriceDetails;
 import com.astravastra.cart_service.dto.CartResponse;
 import com.astravastra.cart_service.dto.CartSelectionRequest;
+import com.astravastra.cart_service.dto.RemoveCartRequest;
 import com.astravastra.cart_service.dto.ResponseDto;
+import com.astravastra.cart_service.dto.SizeDto;
 import com.astravastra.cart_service.entity.CartItem;
 import com.astravastra.cart_service.entity.Product;
 import com.astravastra.cart_service.entity.ProductImage;
@@ -104,15 +107,15 @@ public class CartService {
 
 	@Transactional
 	public ResponseDto updateCartSelection(String userEmail, List<CartSelectionRequest> request) {
-		
+
 		Users users = userRepository.findUserByEmail(userEmail);
 
 		if (users == null) {
 			return new ResponseDto(false, "User not authenticated", null);
 		}
-		
+
 		if (!request.isEmpty()) {
-			
+
 			// Validate all items before updating any of them
 			List<CartItem> cartItemsToUpdate = new ArrayList<>();
 
@@ -122,21 +125,57 @@ public class CartService {
 					return new ResponseDto(false, "Cart item ID and selected status are required", null);
 				}
 
-				Optional<CartItem> optionalItem = cartItemRepository.findByIdAndUserId(itemRequest.getCartItemId(), users.getId());
+				Optional<CartItem> optionalItem = cartItemRepository.findByIdAndUserId(itemRequest.getCartItemId(),
+						users.getId());
 
 				if (optionalItem.isEmpty()) {
 					return new ResponseDto(false, "Cart item not found: " + itemRequest.getCartItemId(), null);
 				}
 
 				CartItem cartItem = optionalItem.get();
-				cartItem.setSelected(itemRequest.getSelected());
+
+				// Update selection when selected is provided
+				if (itemRequest.getSelected() != null) {
+					cartItem.setSelected(itemRequest.getSelected());
+				}
+
+				// Change size when variantId is provided
+				if (itemRequest.getVariantId() != null) {
+
+					ProductVariant newVariant = variantRepository.findById(itemRequest.getVariantId()).orElse(null);
+
+					if (newVariant == null) {
+						return new ResponseDto(false, "Selected size not found", null);
+					}
+
+					ProductVariant currentVariant = variantRepository.findById(cartItem.getVariantId()).orElse(null);
+
+					if (currentVariant == null) {
+						return new ResponseDto(false, "Current product variant not found", null);
+					}
+
+					// Validate stock
+					if (newVariant.getStockQuantity() == null
+							|| newVariant.getStockQuantity() < cartItem.getQuantity()) {
+						return new ResponseDto(false, "Selected size is out of stock", null);
+					}
+
+					// Check duplicate variant in the same user's cart
+					Optional<CartItem> duplicate = cartItemRepository.findByUserIdAndVariantId(users.getId(),
+							newVariant.getId());
+
+					if (duplicate.isPresent() && !duplicate.get().getId().equals(cartItem.getId())) {
+						return new ResponseDto(false, "This size is already available in your cart", null);
+					}
+
+					cartItem.setVariantId(newVariant.getId());
+				}
 
 				cartItemsToUpdate.add(cartItem);
 			}
 
-			// Persist all selection changes
 			cartItemRepository.saveAll(cartItemsToUpdate);
-			
+
 		}
 
 		// Return refreshed cart and recalculated price details
@@ -191,6 +230,18 @@ public class CartService {
 			double sellingPrice = offerPrice != null ? offerPrice : mrp;
 
 			double unitDiscount = Math.max(mrp - sellingPrice, 0.0);
+			
+			// Fetch all available sizes
+			List<ProductVariant> productVariants = variantRepository.findByProductId(product.getId());
+
+			List<SizeDto> sizes = productVariants.stream().map(productVariant -> {
+
+				Integer availableStock = productVariant.getStockQuantity();
+
+				return SizeDto.builder().variantId(productVariant.getId()).size(productVariant.getSize())
+						.availableStock(availableStock).selectedSize(productVariant.getId().equals(variantId))
+						.inStock(availableStock != null && availableStock > 0).build();
+			}).collect(Collectors.toList());
 
 			// Calculate image
 			List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
@@ -226,12 +277,11 @@ public class CartService {
 					subtotal += sellingPrice * quantity;
 				}
 			}
-
+			
 			CartItemResponse item = CartItemResponse.builder().cartItemId(cartItem.getId()).productId(product.getId())
-					.variantId(variant.getId()).productName(product.getName()).brand(product.getBrand().getName())
-					.size(variant.getSize()).color(variant.getProduct().getColour()).imageUrl(imageUrl).quantity(quantity)
-					.availableStock(stock).price(price).offerPrice(offerPrice).discount(discountPercentage)
-					.selected(selected).inStock(inStock).build();
+					.productName(product.getName()).brand(product.getBrand().getName()).sizes(sizes)
+					.color(variant.getProduct().getColour()).imageUrl(imageUrl).quantity(quantity).price(price)
+					.offerPrice(offerPrice).discount(round(discountPercentage)).selected(selected).build();
 
 			items.add(item);
 		}
@@ -277,6 +327,30 @@ public class CartService {
 	private double round(double amount) {
 
 		return Math.round(amount * 100.0) / 100.0;
+	}
+
+	@Transactional
+	public ResponseDto removeCartItems(String userEmail, List<RemoveCartRequest> request) {
+
+		Users users = userRepository.findUserByEmail(userEmail);
+
+		if (users == null) {
+			return new ResponseDto(false, "User not authenticated", null);
+		}
+
+		for (RemoveCartRequest removeCartRequest : request) {
+
+			Optional<CartItem> cartItem = cartItemRepository.findByIdAndUserId(removeCartRequest.getCartItemId(),
+					users.getId());
+
+			if (cartItem.isEmpty()) {
+				return new ResponseDto(false, "Cart item not found", null);
+			}
+			
+			cartItemRepository.deleteByIdAndUserId(removeCartRequest.getCartItemId(), users.getId());
+		}
+
+		return new ResponseDto(true, "Products removed from cart successfully", null);
 	}
 	
 }
