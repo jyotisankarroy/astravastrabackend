@@ -29,10 +29,6 @@ public class CartController {
 		ResponseDto response = cartService.addToCart(userEmail, request.getProductId(), request.getVariantId(),
 				request.getQuantity());
 
-		if (!response.isStatus()) {
-			return ResponseEntity.badRequest().body(response);
-		}
-
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 

@@ -80,7 +80,7 @@ public class CartService {
 
 		if (item != null) {
 //			updatedQuantity = item.getQuantity() + quantity;
-			return new ResponseDto(false, "This size is already available in your cart", null);
+			return new ResponseDto(false, "This size of the product is already in your cart", null);
 		} else {
 			item = new CartItem();
 			item.setUserId(user.getId());
