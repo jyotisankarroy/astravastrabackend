@@ -74,12 +74,13 @@ public class CartService {
 		}
 
 		// Find existing cart item for this user and variant
-		CartItem item = cartItemRepository.findByUserIdAndVariantId(user.getId(), variantId).orElse(null);
+		CartItem item = cartItemRepository.findByUserIdAndVariantIdAndProductId(user.getId(), variantId, productId).orElse(null);
 
 		int updatedQuantity = quantity;
 
 		if (item != null) {
-			updatedQuantity = item.getQuantity() + quantity;
+//			updatedQuantity = item.getQuantity() + quantity;
+			return new ResponseDto(false, "This size is already available in your cart", null);
 		} else {
 			item = new CartItem();
 			item.setUserId(user.getId());
@@ -161,12 +162,12 @@ public class CartService {
 					}
 
 					// Check duplicate variant in the same user's cart
-					Optional<CartItem> duplicate = cartItemRepository.findByUserIdAndVariantId(users.getId(),
-							newVariant.getId());
-
-					if (duplicate.isPresent() && !duplicate.get().getId().equals(cartItem.getId())) {
-						return new ResponseDto(false, "This size is already available in your cart", null);
-					}
+//					Optional<CartItem> duplicate = cartItemRepository.findByUserIdAndVariantId(users.getId(),
+//							newVariant.getId());
+//
+//					if (duplicate.isPresent() && !duplicate.get().getId().equals(cartItem.getId())) {
+//						return new ResponseDto(false, "This size is already available in your cart", null);
+//					}
 
 					cartItem.setVariantId(newVariant.getId());
 				}
