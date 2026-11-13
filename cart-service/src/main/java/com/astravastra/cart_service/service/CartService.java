@@ -39,7 +39,7 @@ public class CartService {
 
 	@Transactional
 	public ResponseDto addToCart(String userEmail, Long productId, Long variantId, Integer quantity) {
-
+		String msg = null;
 		Users user = userRepository.findUserByEmail(userEmail);
 
 		// Validate request
@@ -74,23 +74,39 @@ public class CartService {
 		}
 
 		// Find existing cart item for this user and variant
-		CartItem item = cartItemRepository.findByUserIdAndVariantIdAndProductId(user.getId(), variantId, productId).orElse(null);
+		CartItem item = cartItemRepository.findByUserIdAndVariantIdAndProductId(user.getId(), variantId, productId)
+				.orElse(null);
 
-		int updatedQuantity = quantity;
+		int updatedQuantity;
 
 		if (item != null) {
-//			updatedQuantity = item.getQuantity() + quantity;
-			return new ResponseDto(false, "This size of the product is already in your cart", null);
+
+			updatedQuantity = item.getQuantity() + quantity;
+
+			if (updatedQuantity > stock) {
+				int remainingStock = stock - item.getQuantity();
+
+				return new ResponseDto(false, remainingStock > 0 ? "You can add only " + remainingStock + " more units"
+						: "Maximum available stock already added to cart", null);
+			}
+
+			msg = "You have this item in your cart and we have increased the quantity by 1";
+
 		} else {
+
+			if (quantity > stock) {
+				return new ResponseDto(false, "Only " + stock + " units are available", null);
+			}
+
 			item = new CartItem();
 			item.setUserId(user.getId());
 			item.setProductId(productId);
 			item.setVariantId(variant.getId());
 			item.setSelected(true);
-		}
 
-		if (updatedQuantity > stock) {
-			return new ResponseDto(false, "Only " + stock + " units are available", null);
+			updatedQuantity = quantity;
+
+			msg = "Product added to cart";
 		}
 
 		item.setQuantity(updatedQuantity);
@@ -100,10 +116,87 @@ public class CartService {
 		// Prepare response data
 		AddToCartResponse data = AddToCartResponse.builder().cartItemId(savedItem.getId())
 				.productId(variant.getProduct().getId()).variantId(variant.getId())
-				.productName(variant.getProduct().getName()).size(variant.getSize()).color(variant.getProduct().getColour())
-				.quantity(savedItem.getQuantity()).price(variant.getPrice()).offerPrice(variant.getOfferPrice()).build();
+				.productName(variant.getProduct().getName()).size(variant.getSize())
+				.color(variant.getProduct().getColour()).quantity(savedItem.getQuantity()).price(variant.getPrice())
+				.offerPrice(variant.getOfferPrice()).build();
 
-		return new ResponseDto(true, "Product added to cart successfully", data);
+		return new ResponseDto(true, msg, data);
+	}
+	
+
+	@Transactional
+	public ResponseDto updateCart(String userEmail, Long productId, Long variantId, Integer quantity, Long cartId) {
+
+		Users user = userRepository.findUserByEmail(userEmail);
+
+		if (user == null) {
+			return new ResponseDto(false, "User not authenticated", null);
+		}
+
+		if (cartId == null || variantId == null) {
+			return new ResponseDto(false, "Cart ID and Variant ID are required", null);
+		}
+
+		if (quantity == null || quantity < 1) {
+			return new ResponseDto(false, "Quantity must be at least 1", null);
+		}
+
+		// Fetch existing cart item
+		CartItem item = cartItemRepository.findById(cartId).orElse(null);
+
+		if (item == null || !item.getUserId().equals(user.getId())) {
+			return new ResponseDto(false, "Cart item not found", null);
+		}
+
+		// Validate product
+		if (!item.getProductId().equals(productId)) {
+			return new ResponseDto(false, "Invalid product for this cart item", null);
+		}
+
+		// Fetch new variant
+		ProductVariant variant = variantRepository.findById(variantId).orElse(null);
+
+		if (variant == null) {
+			return new ResponseDto(false, "Product variant not found", null);
+		}
+
+		if (variant.getProduct() == null || !variant.getProduct().getId().equals(productId)) {
+			return new ResponseDto(false, "Invalid variant for this product", null);
+		}
+
+		// Check if another cart item already has this variant
+		CartItem existingItem = cartItemRepository
+				.findByUserIdAndVariantIdAndProductId(user.getId(), variantId, productId).orElse(null);
+
+		if (existingItem != null && !existingItem.getId().equals(cartId)) {
+			return new ResponseDto(false, "This size of the product is already in your cart", null);
+		}
+
+		// Validate stock
+		Integer stock = variant.getStockQuantity();
+
+		if (stock == null || stock < 1) {
+			return new ResponseDto(false, "Product is out of stock", null);
+		}
+
+		if (quantity > stock) {
+			return new ResponseDto(false, "Only " + stock + " units are available", null);
+		}
+
+		// Update variant and quantity
+		item.setVariantId(variantId);
+		item.setQuantity(quantity);
+
+		CartItem savedItem = cartItemRepository.save(item);
+
+		// Prepare response
+		AddToCartResponse data = AddToCartResponse.builder().cartItemId(savedItem.getId())
+				.productId(variant.getProduct().getId()).variantId(variant.getId())
+				.productName(variant.getProduct().getName()).size(variant.getSize())
+				.color(variant.getProduct().getColour()).quantity(savedItem.getQuantity()).price(variant.getPrice())
+				.offerPrice(variant.getOfferPrice()).build();
+
+		return new ResponseDto(true, "Cart updated successfully", data);
 	}
 
 	@Transactional

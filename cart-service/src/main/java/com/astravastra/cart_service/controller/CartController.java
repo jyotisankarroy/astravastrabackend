@@ -21,7 +21,7 @@ public class CartController {
 
 	private final CartService cartService;
 
-	// Add items
+	// Add items to cart
 	@PostMapping("/add-items")
 	public ResponseEntity<ResponseDto> addToCart(@RequestHeader("X-Auth-User-Email") String userEmail,
 			@RequestBody AddToCartRequest request) {
@@ -44,6 +44,17 @@ public class CartController {
 		}
 
 		return ResponseEntity.ok(response);
+	}
+	
+	// Update items
+	@PostMapping("/update-items")
+	public ResponseEntity<ResponseDto> updateCart(@RequestHeader("X-Auth-User-Email") String userEmail,
+			@RequestBody AddToCartRequest request) {
+
+		ResponseDto response = cartService.updateCart(userEmail, request.getProductId(), request.getVariantId(),
+				request.getQuantity(), request.getCartItemId());
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	// Remove items
