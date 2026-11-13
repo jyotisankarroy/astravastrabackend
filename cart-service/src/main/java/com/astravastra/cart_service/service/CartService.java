@@ -331,7 +331,7 @@ public class CartService {
 	}
 
 	@Transactional
-	public ResponseDto removeCartItems(String userEmail, List<RemoveCartRequest> request) {
+	public ResponseDto removeCartItems(String userEmail, RemoveCartRequest request) {
 
 		Users users = userRepository.findUserByEmail(userEmail);
 
@@ -339,16 +339,15 @@ public class CartService {
 			return new ResponseDto(false, "User not authenticated", null);
 		}
 
-		for (RemoveCartRequest removeCartRequest : request) {
+		for (Long cartId : request.getCartItemId()) {
 
-			Optional<CartItem> cartItem = cartItemRepository.findByIdAndUserId(removeCartRequest.getCartItemId(),
-					users.getId());
+			Optional<CartItem> cartItem = cartItemRepository.findByIdAndUserId(cartId, users.getId());
 
 			if (cartItem.isEmpty()) {
 				return new ResponseDto(false, "Cart item not found", null);
 			}
 			
-			cartItemRepository.deleteByIdAndUserId(removeCartRequest.getCartItemId(), users.getId());
+			cartItemRepository.deleteByIdAndUserId(cartId, users.getId());
 		}
 
 		return new ResponseDto(true, "Products removed from cart successfully", null);

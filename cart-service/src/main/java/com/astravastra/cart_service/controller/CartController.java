@@ -49,7 +49,7 @@ public class CartController {
 	// Remove items
 	@DeleteMapping("/items/remove")
 	public ResponseEntity<ResponseDto> removeCartItems(@RequestHeader("X-Auth-User-Email") String userEmail,
-			@RequestBody List<RemoveCartRequest> request) {
+			@RequestBody RemoveCartRequest request) {
 
 		ResponseDto response = cartService.removeCartItems(userEmail, request);
 

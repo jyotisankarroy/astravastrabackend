@@ -1,10 +1,12 @@
 package com.astravastra.cart_service.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
 public class RemoveCartRequest {
 
-	private Long cartItemId;
+	private List<Long> cartItemId;
 	
 }
