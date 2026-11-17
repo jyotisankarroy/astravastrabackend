@@ -36,6 +36,7 @@ import com.astravastra.catalog_service.entity.ProductReview;
 import com.astravastra.catalog_service.entity.ProductSeller;
 import com.astravastra.catalog_service.entity.ProductVariant;
 import com.astravastra.catalog_service.entity.SizeChart;
+import com.astravastra.catalog_service.entity.Users;
 import com.astravastra.catalog_service.repository.CategoryRepository;
 import com.astravastra.catalog_service.repository.GenderRepository;
 import com.astravastra.catalog_service.repository.ProductAttributeRepository;
@@ -44,6 +45,8 @@ import com.astravastra.catalog_service.repository.ProductRepository;
 import com.astravastra.catalog_service.repository.ProductReviewRepository;
 import com.astravastra.catalog_service.repository.ProductSellerRepository;
 import com.astravastra.catalog_service.repository.SizeChartRepository;
+import com.astravastra.catalog_service.repository.UserRepository;
+import com.astravastra.catalog_service.repository.WishlistRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -69,10 +72,12 @@ public class ProductService {
 	private final ProductReviewRepository productReviewRepository;
 	private final ProductSellerRepository productSellerRepository;
 	private final SizeChartRepository sizeChartRepository;
+	private final WishlistRepository wishlistRepository;
+	private final UserRepository userRepository;
 
 	@Transactional(readOnly = true)
 	public ProductListingResponse getProductsByCategory(ProductFilterRequest filterRequest, Long categoryId, int offset,
-			int limit) {
+			int limit, String userEmail) {
 
 		ProductListingResponse response = new ProductListingResponse();
 
@@ -138,7 +143,7 @@ public class ProductService {
 
 		// product response
 		response.setData(products.stream().map(product -> convertToProductResponse(product, filterRequest.getSizes(),
-				filterRequest.getMinPrice(), filterRequest.getMaxPrice())).toList());
+				filterRequest.getMinPrice(), filterRequest.getMaxPrice(), userEmail)).toList());
 
 		response.setStatus(true);
 
@@ -490,8 +495,8 @@ public class ProductService {
 	}
 
 	private ProductResponse convertToProductResponse(Product product, List<String> selectedSizes, Double minPrice,
-			Double maxPrice) {
-
+			Double maxPrice, String userEmail) {
+		
 		ProductResponse response = new ProductResponse();
 
 		response.setProductId(product.getId());
@@ -560,6 +565,14 @@ public class ProductService {
 			response.setCount(totalRatingCount);
 
 		}
+		
+		if (userEmail != null) {
+			Users user = userRepository.findUserByEmail(userEmail);
+			
+			boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(user.getId(), product.getId());
+			
+			response.setIsWishlist(isWishlist);
+		}
 
 		// These field is not present in Product entity
 		response.setPopularityScore(null);
@@ -574,7 +587,7 @@ public class ProductService {
 		return list;
 	}
 
-	public ResponseDto getProductDetails(Long productId) {
+	public ResponseDto getProductDetails(Long productId, String userEmail) {
 
 		Product product = productRepository.findById(productId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
@@ -618,6 +631,14 @@ public class ProductService {
 		data.setBrand(product.getBrand().getName());
 		data.setName(product.getName());
 		data.setSummary(product.getShortDescription());
+		
+		if (userEmail != null) {
+			Users user = userRepository.findUserByEmail(userEmail);
+			
+			boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(user.getId(), product.getId());
+			
+			data.setIsWishlist(isWishlist);
+		}
 
 		ProductInfoDto info = new ProductInfoDto();
 		info.setDescription(product.getDescription());

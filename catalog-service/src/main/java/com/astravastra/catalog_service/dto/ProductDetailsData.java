@@ -15,6 +15,8 @@ public class ProductDetailsData {
     
     private String summary;
     
+    private Boolean isWishlist;
+    
     private ProductInfoDto productDetails;
     
     private List<String> images;

@@ -27,6 +27,7 @@ import com.astravastra.cart_service.repository.CartItemRepository;
 import com.astravastra.cart_service.repository.ProductImageRepository;
 import com.astravastra.cart_service.repository.ProductVariantRepository;
 import com.astravastra.cart_service.repository.UserRepository;
+import com.astravastra.cart_service.repository.WishlistRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,7 @@ public class CartService {
 	private final ProductVariantRepository variantRepository;
 	private final UserRepository userRepository;
 	private final ProductImageRepository productImageRepository;
+	private final WishlistRepository wishlistRepository;
 
 	@Transactional
 	public ResponseDto addToCart(String userEmail, Long productId, Long variantId, Integer quantity) {
@@ -233,43 +235,10 @@ public class CartService {
 					cartItem.setSelected(itemRequest.getSelected());
 				}
 
-				// Change size when variantId is provided
-				if (itemRequest.getVariantId() != null) {
-
-					ProductVariant newVariant = variantRepository.findById(itemRequest.getVariantId()).orElse(null);
-
-					if (newVariant == null) {
-						return new ResponseDto(false, "Selected size not found", null);
-					}
-
-					ProductVariant currentVariant = variantRepository.findById(cartItem.getVariantId()).orElse(null);
-
-					if (currentVariant == null) {
-						return new ResponseDto(false, "Current product variant not found", null);
-					}
-
-					// Validate stock
-					if (newVariant.getStockQuantity() == null
-							|| newVariant.getStockQuantity() < cartItem.getQuantity()) {
-						return new ResponseDto(false, "Selected size is out of stock", null);
-					}
-
-					// Check duplicate variant in the same user's cart
-//					Optional<CartItem> duplicate = cartItemRepository.findByUserIdAndVariantId(users.getId(),
-//							newVariant.getId());
-//
-//					if (duplicate.isPresent() && !duplicate.get().getId().equals(cartItem.getId())) {
-//						return new ResponseDto(false, "This size is already available in your cart", null);
-//					}
-
-					cartItem.setVariantId(newVariant.getId());
-				}
-
 				cartItemsToUpdate.add(cartItem);
 			}
 
 			cartItemRepository.saveAll(cartItemsToUpdate);
-
 		}
 
 		// Return refreshed cart and recalculated price details
@@ -337,7 +306,7 @@ public class CartService {
 						.inStock(availableStock != null && availableStock > 0).build();
 			}).collect(Collectors.toList());
 
-			// Calculate image
+			// Fetch image
 			List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
 
 			String imageUrl = null;
@@ -372,10 +341,12 @@ public class CartService {
 				}
 			}
 			
+			boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(userId, product.getId());
+			
 			CartItemResponse item = CartItemResponse.builder().cartItemId(cartItem.getId()).productId(product.getId())
 					.productName(product.getName()).brand(product.getBrand().getName()).sizes(sizes)
 					.color(variant.getProduct().getColour()).imageUrl(imageUrl).quantity(quantity).price(price)
-					.offerPrice(offerPrice).discount(round(discountPercentage)).selected(selected).build();
+					.offerPrice(offerPrice).discount(round(discountPercentage)).selected(selected).isWishlist(isWishlist).build();
 
 			items.add(item);
 		}

@@ -52,11 +52,4 @@ public class WishlistController {
 		return response.isStatus() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
 	}
 
-//	@DeleteMapping
-//	public ResponseEntity<ResponseDto> clearWishlist(@RequestHeader("X-Auth-User-Email") String userEmail) {
-//
-//		ResponseDto response = wishlistService.clearWishlist(userEmail);
-//
-//		return response.isStatus() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
-//	}
 }

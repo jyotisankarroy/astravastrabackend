@@ -26,5 +26,6 @@ public class CartItemResponse {
     private Double discount;
 
     private Boolean selected;
+    private Boolean isWishlist;
     
 }

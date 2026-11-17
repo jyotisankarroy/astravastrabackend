@@ -7,8 +7,6 @@ public class CartSelectionRequest {
 
 	private Long cartItemId;
 	
-	private Long variantId;
-
 	private Boolean selected;
 
 }

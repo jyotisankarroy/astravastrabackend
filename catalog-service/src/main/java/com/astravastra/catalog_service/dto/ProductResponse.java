@@ -27,5 +27,6 @@ public class ProductResponse {
     private List<String> availableSizes;
     private String brand;
     private String productUrl;
+    private Boolean isWishlist;
     
 }
