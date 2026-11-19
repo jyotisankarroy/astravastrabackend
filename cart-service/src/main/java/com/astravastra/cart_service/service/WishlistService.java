@@ -2,7 +2,9 @@ package com.astravastra.cart_service.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -41,28 +43,59 @@ public class WishlistService {
 			return new ResponseDto(false, "User not authenticated", null);
 		}
 
-		if (request.getProductId() == null) {
-			return new ResponseDto(false, "Product ID is required", null);
+		List<Long> productIds = request.getProductId();
+
+		if (productIds == null || productIds.isEmpty()) {
+			return new ResponseDto(false, "Product IDs are required", null);
 		}
 
-		Product product = productRepository.findById(request.getProductId()).orElse(null);
+		List<Wishlist> wishlistItems = new ArrayList<>();
 
-		if (product == null) {
-			return new ResponseDto(false, "Product not found", null);
+		List<Long> addedProductIds = new ArrayList<>();
+		List<Long> alreadyAddedProductIds = new ArrayList<>();
+		List<Long> invalidProductIds = new ArrayList<>();
+
+		for (Long productId : productIds) {
+
+			if (productId == null) {
+				continue;
+			}
+
+			Product product = productRepository.findById(productId).orElse(null);
+
+			if (product == null) {
+				invalidProductIds.add(productId);
+				continue;
+			}
+
+			if (wishlistRepository.existsByUserIdAndProductId(user.getId(), productId)) {
+				alreadyAddedProductIds.add(productId);
+				continue;
+			}
+
+			Wishlist wishlist = new Wishlist();
+			wishlist.setUserId(user.getId());
+			wishlist.setProductId(product.getId());
+			wishlist.setCreatedAt(LocalDateTime.now());
+
+			wishlistItems.add(wishlist);
+			addedProductIds.add(productId);
 		}
 
-		if (wishlistRepository.existsByUserIdAndProductId(user.getId(), request.getProductId())) {
-			return new ResponseDto(false, "Product already added in wishlist", null);
+		if (!wishlistItems.isEmpty()) {
+			wishlistRepository.saveAll(wishlistItems);
 		}
 
-		Wishlist wishlist = new Wishlist();
-		wishlist.setUserId(user.getId());
-		wishlist.setProductId(product.getId());
-		wishlist.setCreatedAt(LocalDateTime.now());
+		Map<String, Object> response = new HashMap<>();
+		response.put("addedProductIds", addedProductIds);
+		response.put("alreadyAddedProductIds", alreadyAddedProductIds);
+		response.put("invalidProductIds", invalidProductIds);
 
-		wishlistRepository.save(wishlist);
+		if (!addedProductIds.isEmpty()) {
+			return new ResponseDto(true, "Products added to wishlist successfully", response);
+		}
 
-		return new ResponseDto(true, "Product added to wishlist successfully", null);
+		return new ResponseDto(false, "No new products added to wishlist", response);
 	}
 
 	public ResponseDto getWishlist(String userEmail) {
