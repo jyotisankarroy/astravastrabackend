@@ -2,6 +2,7 @@ package com.astravastra.cart_service.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +15,13 @@ import com.astravastra.cart_service.dto.ResponseDto;
 import com.astravastra.cart_service.dto.SizeDto;
 import com.astravastra.cart_service.dto.WishlistRequest;
 import com.astravastra.cart_service.dto.WishlistResponse;
+import com.astravastra.cart_service.entity.Category;
 import com.astravastra.cart_service.entity.Product;
 import com.astravastra.cart_service.entity.ProductImage;
 import com.astravastra.cart_service.entity.ProductVariant;
 import com.astravastra.cart_service.entity.Users;
 import com.astravastra.cart_service.entity.Wishlist;
+import com.astravastra.cart_service.repository.CategoryRepository;
 import com.astravastra.cart_service.repository.ProductRepository;
 import com.astravastra.cart_service.repository.UserRepository;
 import com.astravastra.cart_service.repository.WishlistRepository;
@@ -32,6 +35,7 @@ public class WishlistService {
 
 	private final WishlistRepository wishlistRepository;
 	private final ProductRepository productRepository;
+	private final CategoryRepository categoryRepository;
 	private final UserRepository userRepository;
 
 	@Transactional
@@ -147,7 +151,7 @@ public class WishlistService {
 			WishlistResponse response = WishlistResponse.builder().wishlistItemId(wishlist.getId())
 					.productId(product.getId()).productName(product.getName())
 					.brand(product.getBrand() != null ? product.getBrand().getName() : null)
-					.imageUrl(imageUrl).sizes(sizes)
+					.imageUrl(imageUrl).sizes(sizes).productUrl(buildProductUrl(product))
 					.price(price).offerPrice(offerPrice).discount(Math.round(discount * 100.0) / 100.0)
 					.build();
 
@@ -155,6 +159,87 @@ public class WishlistService {
 		}
 
 		return new ResponseDto(true, "Wishlist fetched successfully", responseList);
+	}
+	
+	private String buildProductUrl(Product product) {
+
+		List<String> pathSegments = new ArrayList<>();
+
+		// Gender
+		String gender = product.getGender();
+
+		if (gender != null && !gender.isBlank()) {
+			pathSegments.add(slugify(gender));
+		}
+
+		// Category hierarchy
+		Long categoryId = product.getCategoryId();
+
+		if (categoryId != null) {
+
+			List<Category> hierarchy = new ArrayList<>();
+
+			Category current = categoryRepository.findById(categoryId).orElse(null);
+
+			while (current != null) {
+
+				hierarchy.add(current);
+
+				if (current.getParentId() == null) {
+					break;
+				}
+
+				current = categoryRepository.findById(current.getParentId()).orElse(null);
+			}
+
+			// Root to leaf
+			Collections.reverse(hierarchy);
+
+			for (Category category : hierarchy) {
+
+				String categoryName = category.getMenuName();
+
+				if (categoryName == null || categoryName.isBlank()) {
+					categoryName = category.getName();
+				}
+
+				String slug = slugify(categoryName);
+
+				// Skip generic root categories such as Clothing
+				if (slug.equals("clothing")) {
+					continue;
+				}
+
+				// Remove the gender prefix from category names,
+				// e.g. "men-topwear" becomes "topwear".
+				String genderPrefix = slugify(gender) + "-";
+
+				if (!genderPrefix.equals("-") && slug.startsWith(genderPrefix)) {
+					slug = slug.substring(genderPrefix.length());
+				}
+
+				if (!slug.isBlank() && !pathSegments.contains(slug)) {
+					pathSegments.add(slug);
+				}
+			}
+		}
+
+		// Product slug
+		pathSegments.add(slugify(product.getName()));
+
+		// Product ID and buy suffix
+		pathSegments.add(String.valueOf(product.getId()));
+		pathSegments.add("buy");
+
+		return String.join("/", pathSegments);
+	}
+
+	private String slugify(String value) {
+		if (value == null || value.isBlank()) {
+			return "";
+		}
+
+		return value.toLowerCase().trim().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
 	}
 
 	@Transactional

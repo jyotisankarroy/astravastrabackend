@@ -14,6 +14,7 @@ public class CartItemResponse {
 
     private String brand;
     private String productName;
+    private String productUrl;
 
     private List<SizeDto> sizes;
     private String color;

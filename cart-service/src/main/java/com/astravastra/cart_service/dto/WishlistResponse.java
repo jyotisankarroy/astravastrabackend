@@ -14,6 +14,7 @@ public class WishlistResponse {
 
     private String brand;
     private String productName;
+    private String productUrl;
 
     private List<SizeDto> sizes;
     private String imageUrl;

@@ -3,6 +3,7 @@ package com.astravastra.cart_service.service;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -19,11 +20,13 @@ import com.astravastra.cart_service.dto.RemoveCartRequest;
 import com.astravastra.cart_service.dto.ResponseDto;
 import com.astravastra.cart_service.dto.SizeDto;
 import com.astravastra.cart_service.entity.CartItem;
+import com.astravastra.cart_service.entity.Category;
 import com.astravastra.cart_service.entity.Product;
 import com.astravastra.cart_service.entity.ProductImage;
 import com.astravastra.cart_service.entity.ProductVariant;
 import com.astravastra.cart_service.entity.Users;
 import com.astravastra.cart_service.repository.CartItemRepository;
+import com.astravastra.cart_service.repository.CategoryRepository;
 import com.astravastra.cart_service.repository.ProductImageRepository;
 import com.astravastra.cart_service.repository.ProductVariantRepository;
 import com.astravastra.cart_service.repository.UserRepository;
@@ -37,6 +40,7 @@ public class CartService {
 	private final ProductVariantRepository variantRepository;
 	private final UserRepository userRepository;
 	private final ProductImageRepository productImageRepository;
+	private final CategoryRepository categoryRepository;
 	private final WishlistRepository wishlistRepository;
 
 	@Transactional
@@ -344,7 +348,7 @@ public class CartService {
 			boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(userId, product.getId());
 			
 			CartItemResponse item = CartItemResponse.builder().cartItemId(cartItem.getId()).productId(product.getId())
-					.productName(product.getName()).brand(product.getBrand().getName()).sizes(sizes)
+					.productName(product.getName()).brand(product.getBrand().getName()).sizes(sizes).productUrl(buildProductUrl(product))
 					.color(variant.getProduct().getColour()).imageUrl(imageUrl).quantity(quantity).price(price)
 					.offerPrice(offerPrice).discount(round(discountPercentage)).selected(selected).isWishlist(isWishlist).build();
 
@@ -392,6 +396,87 @@ public class CartService {
 	private double round(double amount) {
 
 		return Math.round(amount * 100.0) / 100.0;
+	}
+	
+	private String buildProductUrl(Product product) {
+
+		List<String> pathSegments = new ArrayList<>();
+
+		// Gender
+		String gender = product.getGender();
+
+		if (gender != null && !gender.isBlank()) {
+			pathSegments.add(slugify(gender));
+		}
+
+		// Category hierarchy
+		Long categoryId = product.getCategoryId();
+
+		if (categoryId != null) {
+
+			List<Category> hierarchy = new ArrayList<>();
+
+			Category current = categoryRepository.findById(categoryId).orElse(null);
+
+			while (current != null) {
+
+				hierarchy.add(current);
+
+				if (current.getParentId() == null) {
+					break;
+				}
+
+				current = categoryRepository.findById(current.getParentId()).orElse(null);
+			}
+
+			// Root to leaf
+			Collections.reverse(hierarchy);
+
+			for (Category category : hierarchy) {
+
+				String categoryName = category.getMenuName();
+
+				if (categoryName == null || categoryName.isBlank()) {
+					categoryName = category.getName();
+				}
+
+				String slug = slugify(categoryName);
+
+				// Skip generic root categories such as Clothing
+				if (slug.equals("clothing")) {
+					continue;
+				}
+
+				// Remove the gender prefix from category names,
+				// e.g. "men-topwear" becomes "topwear".
+				String genderPrefix = slugify(gender) + "-";
+
+				if (!genderPrefix.equals("-") && slug.startsWith(genderPrefix)) {
+					slug = slug.substring(genderPrefix.length());
+				}
+
+				if (!slug.isBlank() && !pathSegments.contains(slug)) {
+					pathSegments.add(slug);
+				}
+			}
+		}
+
+		// Product slug
+		pathSegments.add(slugify(product.getName()));
+
+		// Product ID and buy suffix
+		pathSegments.add(String.valueOf(product.getId()));
+		pathSegments.add("buy");
+
+		return String.join("/", pathSegments);
+	}
+
+	private String slugify(String value) {
+		if (value == null || value.isBlank()) {
+			return "";
+		}
+
+		return value.toLowerCase().trim().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
 	}
 
 	@Transactional
