@@ -43,11 +43,11 @@ public class WishlistController {
 		return response.isStatus() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
 	}
 
-	@DeleteMapping("/remove/{id}")
+	@DeleteMapping("/remove/{productId}")
 	public ResponseEntity<ResponseDto> removeFromWishlist(@RequestHeader("X-Auth-User-Email") String userEmail,
-			@PathVariable Long id) {
+			@PathVariable Long productId) {
 
-		ResponseDto response = wishlistService.removeFromWishlist(userEmail, id);
+		ResponseDto response = wishlistService.removeFromWishlist(userEmail, productId);
 
 		return response.isStatus() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
 	}
