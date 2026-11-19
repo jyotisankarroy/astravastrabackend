@@ -158,7 +158,7 @@ public class WishlistService {
 	}
 
 	@Transactional
-	public ResponseDto removeFromWishlist(String userEmail, Long productId) {
+	public ResponseDto removeFromWishlist(String userEmail, Long id) {
 
 		Users user = userRepository.findUserByEmail(userEmail);
 
@@ -166,7 +166,7 @@ public class WishlistService {
 			return new ResponseDto(false, "User not authenticated", null);
 		}
 
-		Optional<Wishlist> wishlist = wishlistRepository.findByUserIdAndProductId(user.getId(), productId);
+		Optional<Wishlist> wishlist = wishlistRepository.findByUserIdAndId(user.getId(), id);
 
 		if (wishlist.isEmpty()) {
 			return new ResponseDto(false, "Product not found in wishlist", null);
