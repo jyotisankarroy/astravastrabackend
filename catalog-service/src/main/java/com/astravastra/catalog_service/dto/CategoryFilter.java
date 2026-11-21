@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CategoryFilter {
 	
-    private Integer id;
+    private Long id;
     
     private String name;
     

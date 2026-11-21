@@ -245,7 +245,7 @@ public class ProductService {
 
 			CategoryFilter filter = new CategoryFilter();
 
-			filter.setId(category.getId().intValue());
+			filter.setId(category.getId());
 			filter.setName(category.getMenuName());
 			filter.setChecked(selectdCategoryIds != null && selectdCategoryIds.contains(category.getId()));
 			filter.setCount(countProductsByCategoryId);

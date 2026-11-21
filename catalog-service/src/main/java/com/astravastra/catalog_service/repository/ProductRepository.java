@@ -83,7 +83,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 	
 	@Query(value = "SELECT COUNT(*) FROM products p "
 			+ "JOIN brands b ON b.id = p.brand_id WHERE b.id =:brandId AND p.status = 'ACTIVE'", nativeQuery = true)
-	Long countProductsByBrandId(@Param("brandId") Integer brandId);
+	Long countProductsByBrandId(@Param("brandId") Long brandId);
 
 	@Query(value = "SELECT * FROM products WHERE parent_id =:productId", nativeQuery = true)
 	List<Product> findByParentId(@Param("productId") Long productId);
