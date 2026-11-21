@@ -43,7 +43,7 @@ public class MegaMenuService {
 	        List<CategoryMenuResponse> categoryResponses = new ArrayList<>();
 
 	        List<Category> allCategories =
-	                categoryRepository.findAllCtegoriesByDeptId(department.getId());
+	                categoryRepository.findAllCategoriesByDeptId(department.getId());
 
 	        for (Category category : allCategories) {
 
@@ -75,7 +75,7 @@ public class MegaMenuService {
 	            new ArrayList<>();
 
 	    List<Category> allSubCategories =
-	            categoryRepository.findAllSubCtegoriesByParentId(category.getId());
+	            categoryRepository.findAllSubCategoriesByParentId(category.getId());
 
 	    for (Category subCategory : allSubCategories) {
 

@@ -158,9 +158,9 @@ public class ProductService {
 		List<Long> mainCategoryIds = categoryRepository.findMainCategories();
 
 		if (mainCategoryIds.contains(categoryId)) {
-			subCategories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+			subCategories = categoryRepository.findFinalSubCategoriesByParentId(categoryId);
 		} else {
-			subCategories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+			subCategories = categoryRepository.findAllSubCategoriesByParentId(categoryId);
 		}
 
 		if (subCategories.isEmpty()) {
@@ -229,11 +229,11 @@ public class ProductService {
 					categories = categoryRepository.findAllCategoryByGender(4l, categoryId);
 				}
 			} else { // Example -> Clothing, Accesorries
-				categories = categoryRepository.findFinalSubCtegoriesByParentId(categoryId);
+				categories = categoryRepository.findFinalSubCategoriesByParentId(categoryId);
 			}
 
 		} else {
-			categories = categoryRepository.findAllSubCtegoriesByParentId(categoryId);
+			categories = categoryRepository.findAllSubCategoriesByParentId(categoryId);
 		}
 
 		List<Long> selectdCategoryIds = request.getCategoryIds();

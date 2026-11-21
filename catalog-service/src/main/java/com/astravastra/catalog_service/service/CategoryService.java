@@ -2,10 +2,12 @@ package com.astravastra.catalog_service.service;
 
 import org.springframework.stereotype.Service;
 
+import com.astravastra.catalog_service.dto.BrandDto;
 import com.astravastra.catalog_service.dto.CategoryDto;
 import com.astravastra.catalog_service.dto.ResponseDto;
 import com.astravastra.catalog_service.dto.ShopByCategory;
 import com.astravastra.catalog_service.dto.SubCategoryDto;
+import com.astravastra.catalog_service.entity.Brand;
 import com.astravastra.catalog_service.entity.Category;
 import com.astravastra.catalog_service.repository.CategoryRepository;
 
@@ -21,12 +23,14 @@ public class CategoryService {
     }
 
 	public ResponseDto shopByCategory(long departmentId) {
-		List<Category> allCategories = categoryRepository.findAllCtegoriesByDeptId(departmentId);
+		List<Category> allCategories = categoryRepository.findAllCategoriesByDeptId(departmentId);
 
 		ResponseDto response = new ResponseDto();
 		ShopByCategory shopByCategory = new ShopByCategory();
 		List<CategoryDto> categoryList = new ArrayList<>();
 		List<SubCategoryDto> subCategoryList = new ArrayList<>();
+		List<BrandDto> brandList = new ArrayList<>();
+		Set<Long> addedBrandIds = new HashSet<>();
 
 		for (Category category : allCategories) {
 
@@ -39,7 +43,7 @@ public class CategoryService {
 
 			categoryList.add(cat);
 			
-			List<Category> allSubCategories = categoryRepository.findAllSubCtegoriesByParentId(category.getId());
+			List<Category> allSubCategories = categoryRepository.findAllSubCategoriesByParentId(category.getId());
 
 			for (Category subCategory : allSubCategories) {
 
@@ -51,12 +55,30 @@ public class CategoryService {
 				sCat.setImage(subCategory.getImage());
 
 				subCategoryList.add(sCat);
+				
+				List<Brand> allBrands = categoryRepository.findAllBrandsBySubCategoryId(subCategory.getId());
+				
+				for (Brand brand : allBrands) {
+					
+					if (addedBrandIds.add(brand.getId())) {
+				        BrandDto brandDto = new BrandDto();
+				        brandDto.setId(brand.getId());
+				        brandDto.setImage(brand.getLogoUrl());
+				        brandDto.setName(brand.getName());
+				        brandDto.setPath("clothing");
+				        
+				        brandList.add(brandDto);
+				    }
+					
+				}
+				
 			}
 
 		}
 
 		shopByCategory.setCategoryList(categoryList);
 		shopByCategory.setSubCategoryList(subCategoryList);
+		shopByCategory.setBrands(brandList);
 
 		response.setStatus(true);
 		response.setData(shopByCategory);

@@ -10,5 +10,7 @@ public class ShopByCategory {
 	private List<CategoryDto> categoryList;
 	
 	private List<SubCategoryDto> subCategoryList;
+	
+	private List<BrandDto> brands;
 
 }
