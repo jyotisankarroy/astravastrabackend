@@ -54,7 +54,7 @@ public class HomeService {
 			dto.setId(Long.valueOf(map.get("id").toString()));
 			dto.setImage(map.get("logo_url").toString());
 			dto.setName(map.get("name").toString());
-			dto.setPath("clothing");
+			dto.setPath("/clothing");
 
 			brandList.add(dto);
 		}
