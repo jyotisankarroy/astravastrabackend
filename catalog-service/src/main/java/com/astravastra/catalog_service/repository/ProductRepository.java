@@ -1,6 +1,7 @@
 package com.astravastra.catalog_service.repository;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -87,5 +88,65 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	@Query(value = "SELECT * FROM products WHERE parent_id =:productId", nativeQuery = true)
 	List<Product> findByParentId(@Param("productId") Long productId);
+
+	@Query(value = "SELECT "
+			+ "p.id, "
+			+ "p.name, "
+			+ "p.slug, "
+			+ "p.colour, "
+			+ "b.name AS brand_name, "
+			+ "img.image_url AS primary_image, "
+			+ "MIN(v.price) AS original_price, "
+			+ "MIN(v.offer_price) AS offer_price, "
+			+ "MAX(ROUND(((v.price - v.offer_price) / v.price) * 100)) AS max_discount_pct, "
+			+ "ROUND(COALESCE(AVG(r.rating), 0), 2) AS avg_rating, "
+			+ "COUNT(DISTINCT r.id) AS recent_reviews, "
+			+ "ROUND( "
+			+ "        (COALESCE(AVG(r.rating), 0) * LOG10(COUNT(DISTINCT r.id) + 1)) "
+			+ "        + (MAX((v.price - v.offer_price) / v.price) * 2), "
+			+ "        2 "
+			+ "    ) AS trending_score "
+			+ "FROM products p "
+			+ "JOIN brands b ON b.id = p.brand_id AND b.is_active = 1 "
+			+ "JOIN product_variants v ON v.product_id = p.id "
+			+ "LEFT JOIN product_images img ON img.product_id = p.id AND img.is_primary = 1 "
+			+ "LEFT JOIN product_reviews r ON r.product_id = p.id "
+			+ "AND r.is_approved = 1 "
+			+ "AND r.review_date >= NOW() - INTERVAL 90 DAY "
+			+ "WHERE p.status = 'ACTIVE' "
+			+ "  AND p.parent_id IS NULL "
+			+ "GROUP BY "
+			+ "p.id, p.name, p.slug, p.colour, b.name, img.image_url "
+			+ "HAVING SUM(v.stock_quantity) > 0 "
+			+ "ORDER BY trending_score DESC, recent_reviews DESC "
+			+ "LIMIT 10", nativeQuery = true)
+	List<Map<String, Object>> findTrendingProducts();
+	
+	@Query(value = "SELECT "
+			+ "p.id, "
+			+ "p.name, "
+			+ "p.slug, "
+			+ "p.colour, "
+			+ "b.name AS brand_name, "
+			+ "img.image_url AS primary_image, "
+			+ "MIN(v.price) AS original_price, "
+			+ "MIN(v.offer_price) AS offer_price, "
+			+ "MAX(ROUND(((v.price - v.offer_price) / v.price) * 100)) AS max_discount_pct, "
+			+ "ROUND(COALESCE(AVG(r.rating), 0), 2) AS avg_rating, "
+			+ "COUNT(DISTINCT r.id) AS total_reviews "
+			+ "FROM products p "
+			+ "JOIN brands b ON b.id = p.brand_id AND b.is_active = 1 "
+			+ "JOIN product_variants v ON v.product_id = p.id "
+			+ "AND v.price > 0 "
+			+ "AND v.offer_price < v.price "
+			+ "AND v.stock_quantity > 0 "
+			+ "LEFT JOIN product_images img ON img.product_id = p.id AND img.is_primary = 1 "
+			+ "LEFT JOIN product_reviews r ON r.product_id = p.id AND r.is_approved = 1 "
+			+ "WHERE p.status = 'ACTIVE' "
+			+ "AND p.parent_id IS NULL "
+			+ "GROUP BY p.id, p.name, p.slug, p.colour, b.name, img.image_url "
+			+ "ORDER BY max_discount_pct DESC, avg_rating DESC "
+			+ "LIMIT 10", nativeQuery = true)
+	List<Map<String, Object>> findDiscountedProducts();
 
 }

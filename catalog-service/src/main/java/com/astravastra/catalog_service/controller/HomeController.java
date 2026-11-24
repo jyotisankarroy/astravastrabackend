@@ -25,12 +25,12 @@ public class HomeController {
 		return ResponseEntity.ok(response);
 	}
 	
-//	@GetMapping("/home2")
-//	public ResponseEntity<ResponseDto> getHome2PageData() {
-//
-//		ResponseDto response = homeService.getHome2PageData();
-//
-//		return ResponseEntity.ok(response);
-//	}
+	@GetMapping("/home2")
+	public ResponseEntity<ResponseDto> getHome2PageData() {
+
+		ResponseDto response = homeService.getHome2PageData();
+
+		return ResponseEntity.ok(response);
+	}
 
 }
