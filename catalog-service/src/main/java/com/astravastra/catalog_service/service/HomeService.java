@@ -38,47 +38,45 @@ public class HomeService {
 
 	public ResponseDto getHome1PageData() {
 		ResponseDto response = new ResponseDto();
-		
+
 		List<Map<String, Object>> topCategories = categoryRepository.findTopCategories();
-		
+
 		List<Map<String, Object>> topBrands = brandRepository.findTopBrands();
 
 		Home1ResponseDto home1Response = new Home1ResponseDto();
-		
+
 		List<BrandDto> brandList = new ArrayList<>();
-		
-		List<BrandDto> categoryList = new ArrayList<>();	
-		
+
+		List<BrandDto> categoryList = new ArrayList<>();
+
 		for (Map<String, Object> map : topBrands) {
 			BrandDto dto = new BrandDto();
 			dto.setId(Long.valueOf(map.get("id").toString()));
 			dto.setImage(map.get("logo_url").toString());
 			dto.setName(map.get("name").toString());
 			dto.setPath("clothing");
-			
+
 			brandList.add(dto);
 		}
-		
+
 		for (Map<String, Object> map : topCategories) {
 			BrandDto dto = new BrandDto();
 			dto.setId(Long.valueOf(map.get("id").toString()));
 			dto.setImage(map.get("image").toString());
 			dto.setName(map.get("name").toString());
 			dto.setPath(map.get("slug").toString());
-			
+
 			categoryList.add(dto);
 		}
-		
-		List<BannerDto> bannerList = Arrays.asList(
-			    createBanner("banner1.png", "/footwear"),
-			    createBanner("banner2.png", "/women-sportswear"),
-			    createBanner("banner3.png", "/clothing"),
-			    createBanner("banner4.png", "/women-lingerie-and-loungewear"),
-			    createBanner("banner5.png", "/men-topwear")
-			);
+
+		List<BannerDto> bannerList = Arrays.asList(createBanner("assets/Images/banner1.png", "/footwear"),
+				createBanner("assets/Images/banner2.png", "/women-sportswear"),
+				createBanner("assets/Images/banner3.png", "/clothing"),
+				createBanner("assets/Images/banner4.png", "/women-lingerie-and-loungewear"),
+				createBanner("assets/Images/banner5.png", "/men-topwear"));
 
 		home1Response.setLatestProductImage(
-				"https://rukminim2.flixcart.com/image/612/612/xif0q/sari/s/y/w/free-tiranga9601-smc-sareemall-unstitched-original-imah8eqbkzewzq6z.jpeg?q=70");
+				"https://assets.myntassets.com/h_720,q_90,w_540/v1/…/24/Do3bmi5F_8a8af5f3d21b4c6d9ffeb2fbe11c3b2d.jpg");
 		home1Response.setBanners(bannerList);
 		home1Response.setTopBrands(brandList);
 		home1Response.setTopCategories(categoryList);
@@ -99,31 +97,29 @@ public class HomeService {
 
 	public ResponseDto getHome2PageData() {
 		ResponseDto response = new ResponseDto();
-		
+
 		List<Map<String, Object>> trendingProducts = productRepository.findTrendingProducts();
-		
+
 		List<Map<String, Object>> discountedProducts = productRepository.findDiscountedProducts();
-		
+
 		Home2ResponseDto home2Response = new Home2ResponseDto();
-		
+
 		List<ProductResponse> trendingProductList = new ArrayList<>();
-		
+
 		List<ProductResponse> discountedProductList = new ArrayList<>();
-		
+
 		for (Map<String, Object> map : trendingProducts) {
 			Product product = productRepository.findById(Long.valueOf(map.get("id").toString())).get();
-			
+
 			ProductResponse dto = new ProductResponse();
 			// Available sizes
-			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize)
-					.filter(Objects::nonNull).distinct()
-//					.filter(size -> selectedSizes == null || selectedSizes.isEmpty() || selectedSizes.contains(size))
-					.toList());
+			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize).filter(Objects::nonNull)
+					.distinct().toList());
 			dto.setBrand(map.get("brand_name").toString());
 			dto.setDiscount(Double.valueOf(map.get("max_discount_pct").toString()));
 			// Images
 			dto.setImages(product.getImages().stream().map(ProductImage::getImageUrl).filter(Objects::nonNull)
-								.distinct().toList());
+					.distinct().toList());
 			dto.setName(map.get("name").toString());
 			dto.setOfferPrice(Double.valueOf(map.get("offer_price").toString()));
 			dto.setPrice(Double.valueOf(map.get("original_price").toString()));
@@ -131,24 +127,22 @@ public class HomeService {
 			dto.setProductUrl(buildProductUrl(product));
 			dto.setRating(Double.valueOf(map.get("avg_rating").toString()));
 			dto.setCount(Integer.valueOf(map.get("recent_reviews").toString()));
-			
+
 			trendingProductList.add(dto);
 		}
-		
+
 		for (Map<String, Object> map : discountedProducts) {
 			Product product = productRepository.findById(Long.valueOf(map.get("id").toString())).get();
-			
+
 			ProductResponse dto = new ProductResponse();
 			// Available sizes
-			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize)
-					.filter(Objects::nonNull).distinct()
-//								.filter(size -> selectedSizes == null || selectedSizes.isEmpty() || selectedSizes.contains(size))
-					.toList());
+			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize).filter(Objects::nonNull)
+					.distinct().toList());
 			dto.setBrand(map.get("brand_name").toString());
 			dto.setDiscount(Double.valueOf(map.get("max_discount_pct").toString()));
 			// Images
 			dto.setImages(product.getImages().stream().map(ProductImage::getImageUrl).filter(Objects::nonNull)
-											.distinct().toList());
+					.distinct().toList());
 			dto.setName(map.get("name").toString());
 			dto.setOfferPrice(Double.valueOf(map.get("offer_price").toString()));
 			dto.setPrice(Double.valueOf(map.get("original_price").toString()));
@@ -156,17 +150,17 @@ public class HomeService {
 			dto.setProductUrl(buildProductUrl(product));
 			dto.setRating(Double.valueOf(map.get("avg_rating").toString()));
 			dto.setCount(Integer.valueOf(map.get("total_reviews").toString()));
-			
+
 			discountedProductList.add(dto);
 		}
-		
+
 		home2Response.setTrendingProducts(trendingProductList);
 		home2Response.setDiscountedProducts(discountedProductList);
-		
+
 		response.setData(home2Response);
 		response.setMessage("Home 2 response fetched successfully");
 		response.setStatus(true);
-		
+
 		return response;
 	}
 	
