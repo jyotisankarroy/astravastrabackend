@@ -11,13 +11,13 @@ import com.astravastra.catalog_service.service.HomeService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/home")
 @RequiredArgsConstructor
 public class HomeController {
 	
 	private final HomeService homeService;
 	
-	@GetMapping("/home1")
+	@GetMapping("/page1")
 	public ResponseEntity<ResponseDto> getHome1PageData() {
 
 		ResponseDto response = homeService.getHome1PageData();
@@ -25,7 +25,7 @@ public class HomeController {
 		return ResponseEntity.ok(response);
 	}
 	
-	@GetMapping("/home2")
+	@GetMapping("/page2")
 	public ResponseEntity<ResponseDto> getHome2PageData() {
 
 		ResponseDto response = homeService.getHome2PageData();
