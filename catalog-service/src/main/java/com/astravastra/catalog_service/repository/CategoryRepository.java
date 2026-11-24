@@ -1,6 +1,7 @@
 package com.astravastra.catalog_service.repository;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -35,5 +36,15 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 			+ "JOIN brands b ON b.id = p.brand_id "
 			+ "WHERE category_id =:categoryId", nativeQuery = true)
 	List<Brand> findAllBrandsBySubCategoryId(@Param("categoryId") Long categoryId);
+
+	@Query(value = "SELECT c.id, c.name, c.slug, c.image, "
+			+ "COUNT(DISTINCT p.id) AS total_products, COUNT(r.id) AS total_reviews, "
+			+ "ROUND(COALESCE(AVG(r.rating), 0), 2) AS avg_rating, "
+			+ "ROUND(COALESCE(AVG(r.rating), 0) * LOG10(COUNT(r.id) + 1), 2) AS popularity_score "
+			+ "FROM categories c JOIN products p ON p.category_id = c.id "
+			+ "LEFT JOIN product_reviews r ON r.product_id = p.id AND r.is_approved = 1 "
+			+ "WHERE c.is_active = 1 AND p.status = 'ACTIVE' AND p.parent_id IS NULL "
+			+ "GROUP BY c.id, c.name ORDER BY popularity_score DESC LIMIT 12", nativeQuery = true)
+	List<Map<String, Object>> findTopCategories();
 	
 }
