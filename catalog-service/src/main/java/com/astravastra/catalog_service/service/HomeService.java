@@ -81,7 +81,11 @@ public class HomeService {
 				createBanner("assets/Images/banner2.png", "/women-sportswear"),
 				createBanner("assets/Images/banner3.png", "/clothing"),
 				createBanner("assets/Images/banner4.png", "/women-lingerie-and-loungewear"),
-				createBanner("assets/Images/banner5.png", "/men-topwear"));
+				createBanner("assets/Images/banner5.png", "/men-topwear"),
+				createBanner("assets/Images/banner6.png", "/women-personal-care"),
+				createBanner("assets/Images/banner7.png", "/clothing?gender=Women"),
+				createBanner("assets/Images/banner8.png", "/men-sportswear"),
+				createBanner("assets/Images/banner9.png", "/men-topwear"));
 
 		home1Response.setLatestProductImage(
 				"https://assets.myntassets.com/h_720,q_90,w_540/v1/assets/images/2025/SEPTEMBER/24/Do3bmi5F_8a8af5f3d21b4c6d9ffeb2fbe11c3b2d.jpg");
