@@ -803,11 +803,17 @@ public class ProductService {
 
 			ProductVariant variant = entry.getValue();
 			int stock = variant.getStockQuantity();
+			
+			double price = variant.getPrice().doubleValue();
+			double offerPrice = variant.getOfferPrice() != null ? variant.getOfferPrice().doubleValue() : price;
+			int discount = price > 0 && offerPrice < price ? (int) Math.round(((price - offerPrice) / price) * 100.0) : 0;
 
 			SizeOptionDto option = new SizeOptionDto();
 			option.setId(variant.getId());
 			option.setSize(entry.getKey());
-			option.setPrice(variant.getOfferPrice());
+			option.setPrice(price);
+			option.setOfferPrice(offerPrice);
+			option.setDiscount(discount);
 			option.setAvailable(stock > 0);
 
 			if (stock <= 0) {

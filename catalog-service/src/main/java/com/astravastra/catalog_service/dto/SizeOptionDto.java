@@ -11,6 +11,8 @@ public class SizeOptionDto {
 	private Long id;
     private String size;
     private Double price;
+    private Double offerPrice;
+    private Integer discount;
     private Boolean available;
     private String product_left;
 }

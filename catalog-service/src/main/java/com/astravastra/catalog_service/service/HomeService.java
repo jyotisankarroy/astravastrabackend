@@ -20,9 +20,12 @@ import com.astravastra.catalog_service.entity.Category;
 import com.astravastra.catalog_service.entity.Product;
 import com.astravastra.catalog_service.entity.ProductImage;
 import com.astravastra.catalog_service.entity.ProductVariant;
+import com.astravastra.catalog_service.entity.Users;
 import com.astravastra.catalog_service.repository.BrandRepository;
 import com.astravastra.catalog_service.repository.CategoryRepository;
 import com.astravastra.catalog_service.repository.ProductRepository;
+import com.astravastra.catalog_service.repository.UserRepository;
+import com.astravastra.catalog_service.repository.WishlistRepository;
 
 @Service
 public class HomeService {
@@ -35,6 +38,11 @@ public class HomeService {
 	
 	@Autowired
 	ProductRepository productRepository;
+	@Autowired
+	WishlistRepository wishlistRepository;
+	
+	@Autowired
+	UserRepository userRepository;
 
 	public ResponseDto getHome1PageData() {
 		ResponseDto response = new ResponseDto();
@@ -76,7 +84,7 @@ public class HomeService {
 				createBanner("assets/Images/banner5.png", "/men-topwear"));
 
 		home1Response.setLatestProductImage(
-				"https://assets.myntassets.com/h_720,q_90,w_540/v1/…/24/Do3bmi5F_8a8af5f3d21b4c6d9ffeb2fbe11c3b2d.jpg");
+				"https://assets.myntassets.com/h_720,q_90,w_540/v1/assets/images/2025/SEPTEMBER/24/Do3bmi5F_8a8af5f3d21b4c6d9ffeb2fbe11c3b2d.jpg");
 		home1Response.setBanners(bannerList);
 		home1Response.setTopBrands(brandList);
 		home1Response.setTopCategories(categoryList);
@@ -95,7 +103,7 @@ public class HomeService {
 	    return banner;
 	}
 
-	public ResponseDto getHome2PageData() {
+	public ResponseDto getHome2PageData(String userEmail) {
 		ResponseDto response = new ResponseDto();
 
 		List<Map<String, Object>> trendingProducts = productRepository.findTrendingProducts();
@@ -110,8 +118,17 @@ public class HomeService {
 
 		for (Map<String, Object> map : trendingProducts) {
 			Product product = productRepository.findById(Long.valueOf(map.get("id").toString())).get();
-
+			
 			ProductResponse dto = new ProductResponse();
+			
+			if (userEmail != null) {
+				Users user = userRepository.findUserByEmail(userEmail);
+				
+				boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(user.getId(), product.getId());
+				
+				dto.setIsWishlist(isWishlist);
+			}
+
 			// Available sizes
 			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize).filter(Objects::nonNull)
 					.distinct().toList());
@@ -135,6 +152,15 @@ public class HomeService {
 			Product product = productRepository.findById(Long.valueOf(map.get("id").toString())).get();
 
 			ProductResponse dto = new ProductResponse();
+			
+			if (userEmail != null) {
+				Users user = userRepository.findUserByEmail(userEmail);
+				
+				boolean isWishlist = wishlistRepository.existsByUserIdAndProductId(user.getId(), product.getId());
+				
+				dto.setIsWishlist(isWishlist);
+			}
+			
 			// Available sizes
 			dto.setAvailableSizes(product.getVariants().stream().map(ProductVariant::getSize).filter(Objects::nonNull)
 					.distinct().toList());
